@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Refugio | Sistema de Gestión de Cochera</title>
+
+<!-- ============ GUARDIA DE SESIÓN ============
+     Se ejecuta antes de pintar nada: si no hay sesión guardada
+     por login.html, se manda directo al login y no se sigue cargando el resto. -->
+<script>
+  (function protegerAcceso() {
+    const sesion = localStorage.getItem('refugio_sesion');
+    if (!sesion) {
+      window.location.replace('login.html');
+    }
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- ============ FIREBASE (Realtime Database) ============ -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+
+<style>
+  :root{
+    --negro:#0a0a0b;
+    --panel:#131316;
+    --panel-2:#1b1b1f;
+    --borde:#26262b;
+    --amarillo:#f5b400;
+    --amarillo-fuerte:#ffca28;
+    --texto:#f2f2f0;
+    --gris:#98979e;
+    --gris-suave:#6f6e75;
+    --radio:14px;
+    --radio-sm:9px;
+    --sombra:0 10px 30px rgba(0,0,0,.45);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,sans-serif;}
+  h1,h2,h3,h4,.brand-title,.nav-btn,.login-btn{font-family:'Sora',system-ui,sans-serif;}
+  html{scroll-behavior:smooth;}
+  body{
+    display:flex;
+    min-height:100vh;
+    background:
+      radial-gradient(1000px 500px at 100% -10%, rgba(245,180,0,.08), transparent 60%),
+      var(--negro);
+    color:var(--texto);
+  }
+
+  /* ================= SIDEBAR ================= */
+  .sidebar{
+    width:250px;
+    flex-shrink:0;
+    background:var(--panel);
+    border-right:1px solid var(--borde);
+    display:flex;
+    flex-direction:column;
+    position:sticky;
+    top:0;
+    height:100vh;
+    padding:22px 16px;
+    z-index:100;
+  }
+  .brand-link{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    text-decoration:none;
+    color:inherit;
+    padding:6px 8px 22px 8px;
+    border-bottom:1px solid var(--borde);
+    margin-bottom:18px;
+    background:none;
+    border-top:none;border-left:none;border-right:none;
+    cursor:pointer;
+    width:100%;
+    text-align:left;
+  }
+  .brand-logo{
+    width:40px;height:40px;object-fit:cover;border-radius:50%;
+    background:#000;border:2px solid var(--amarillo);flex-shrink:0;
+  }
+  .brand-text{display:flex;flex-direction:column;line-height:1.15;}
+  .brand-title{font-size:1.02rem;font-weight:800;letter-spacing:.4px;color:var(--amarillo);}
+  .brand-subtitle{font-size:.68rem;color:var(--gris);font-weight:500;}
+
+  .nav-menu{display:flex;flex-direction:column;gap:4px;flex:1;}
+  .nav-btn{
+    display:flex;align-items:center;gap:12px;
+    background:transparent;border:none;color:var(--gris);
+    padding:11px 14px;border-radius:var(--radio-sm);cursor:pointer;
+    font-size:.9rem;font-weight:600;text-align:left;
+    transition:background .15s ease,color .15s ease;
+  }
+  .nav-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;flex-shrink:0;}
+  .nav-btn:hover{background:var(--panel-2);color:var(--texto);}
+  .nav-btn.active{background:var(--amarillo);color:#050505;}
+  .nav-btn.active svg{stroke:#050505;}
+
+  .sidebar-footer{border-top:1px solid var(--borde);padding-top:14px;margin-top:10px;}
+  .login-btn{
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    width:100%;background:var(--amarillo);color:#050505;border:none;
+    padding:12px 16px;border-radius:var(--radio-sm);cursor:pointer;
+    font-size:.9rem;font-weight:700;transition:background .15s ease,box-shadow .15s ease;
+  }
+  .login-btn svg{width:17px;height:17px;stroke:#050505;fill:none;}
+  .login-btn:hover{background:var(--amarillo-fuerte);box-shadow:0 0 16px rgba(245,180,0,.4);}
+
+  /* ================= LAYOUT PRINCIPAL ================= */
+  .layout{flex:1;display:flex;flex-direction:column;min-width:0;}
+
+  .topbar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:18px 30px;position:sticky;top:0;
+    background:rgba(10,10,11,.85);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--borde);z-index:90;gap:16px;flex-wrap:wrap;
+  }
+  .breadcrumb{font-size:.85rem;color:var(--gris);}
+  .breadcrumb span{color:var(--amarillo);font-weight:700;}
+  .topbar-left{display:flex;align-items:center;gap:14px;}
+  .topbar-icons{display:flex;align-items:center;gap:10px;}
+
+  /* ---- Botón hamburguesa (solo visible en celular/tablet) ---- */
+  .hamburger-btn{
+    display:none;width:38px;height:38px;border-radius:10px;border:1px solid var(--borde);
+    background:var(--panel);align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .hamburger-btn svg{width:19px;height:19px;stroke:var(--texto);fill:none;}
+  .sidebar-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99;
+    opacity:0;transition:opacity .2s ease;
+  }
+  .sidebar-overlay.activo{display:block;opacity:1;}
+
+  /* ---- Botones de icono + paneles desplegables (notificaciones / cuenta) ---- */
+  .icon-btn{
+    width:38px;height:38px;border-radius:50%;border:1px solid var(--borde);
+    background:var(--panel);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;position:relative;
+  }
+  .icon-btn svg{width:17px;height:17px;stroke:var(--gris);fill:none;}
+  .icon-btn .dot{
+    position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;
+    background:var(--amarillo);border:2px solid var(--negro);
+  }
+
+  .cuenta-chip{
+    display:flex;align-items:center;gap:9px;background:var(--panel);
+    border:1px solid var(--borde);border-radius:24px;padding:6px 14px 6px 6px;
+    cursor:pointer;
+  }
+  .cuenta-chip .avatar{
+    width:28px;height:28px;border-radius:50%;background:var(--amarillo);
+    color:#050505;font-weight:700;font-size:.78rem;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .cuenta-chip .cuenta-texto{display:flex;flex-direction:column;line-height:1.1;text-align:left;}
+  .cuenta-chip .cuenta-texto small{color:var(--gris);font-size:.68rem;}
+  .cuenta-chip .cuenta-texto strong{font-size:.82rem;color:var(--texto);}
+  .cuenta-chip svg.chev{width:13px;height:13px;stroke:var(--gris);fill:none;}
+
+  .dropdown-wrap{position:relative;}
+  .dropdown-panel{
+    position:absolute;top:calc(100% + 10px);right:0;width:260px;
+    background:var(--panel);border:1px solid var(--borde);border-radius:12px;
+    box-shadow:var(--sombra);padding:10px;display:none;z-index:120;
+  }
+  .dropdown-panel.abierto{display:block;animation:aparecer .15s ease;}
+  .dropdown-panel h5{font-size:.8rem;color:var(--gris);padding:6px 8px 10px;text-transform:none;}
+  .notif-header{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 6px;}
+  .notif-header h5{padding:0;}
+  .notif-marcar{
+    background:none;border:none;color:var(--amarillo);font-size:.7rem;font-weight:700;
+    cursor:pointer;padding:2px 4px;
+  }
+  .notif-marcar:hover{color:var(--amarillo-fuerte);text-decoration:underline;}
+  .notif-lista{display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto;}
+  .notif-item{
+    display:flex;gap:10px;padding:9px 8px;border-radius:8px;cursor:pointer;transition:background .12s ease;
+  }
+  .notif-item:hover{background:var(--panel-2);}
+  .notif-item.leida{opacity:.55;}
+  .notif-punto{width:8px;height:8px;border-radius:50%;background:var(--amarillo);margin-top:5px;flex-shrink:0;}
+  .notif-texto p{font-size:.82rem;color:var(--texto);line-height:1.35;}
+  .notif-texto span{font-size:.7rem;color:var(--gris-suave);}
+  .notif-vacio{padding:16px 8px;font-size:.82rem;color:var(--gris);text-align:center;}
+
+  .cuenta-panel-item{
+    display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;
+    color:var(--texto);padding:10px 8px;border-radius:8px;cursor:pointer;font-size:.85rem;text-align:left;
+  }
+  .cuenta-panel-item:hover{background:var(--panel-2);}
+  .cuenta-panel-item svg{width:16px;height:16px;stroke:var(--gris);fill:none;}
+  .cuenta-panel-item.salir{color:#ef4444;}
+  .cuenta-panel-item.salir svg{stroke:#ef4444;}
+  .cuenta-panel-divisor{height:1px;background:var(--borde);margin:6px 0;}
+
+  /* ---- Panel de perfil (dropdown de cuenta) ---- */
+  .panel-perfil{width:270px;padding:14px 10px 10px;}
+  .perfil-header{
+    display:flex;align-items:center;gap:12px;padding:4px 6px 14px;
+    border-bottom:1px solid var(--borde);margin-bottom:8px;
+  }
+  .avatar-grande{
+    width:46px;height:46px;border-radius:50%;background:var(--amarillo);color:#050505;
+    font-weight:800;font-size:1.05rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .perfil-header-texto{display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .perfil-header-texto strong{font-size:.95rem;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .perfil-rol{
+    align-self:flex-start;font-size:.65rem;font-weight:700;color:var(--amarillo);
+    background:rgba(245,180,0,.1);border:1px solid rgba(245,180,0,.3);
+    padding:2px 8px;border-radius:20px;text-transform:capitalize;
+  }
+  .perfil-datos{display:flex;flex-direction:column;gap:8px;padding:2px 6px 10px;}
+  .perfil-dato{display:flex;align-items:center;gap:9px;font-size:.8rem;color:var(--gris);min-width:0;}
+  .perfil-dato svg{width:15px;height:15px;stroke:var(--gris-suave);fill:none;flex-shrink:0;}
+  .perfil-dato span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  .main-content{flex:1;padding:26px 30px 40px;max-width:1160px;width:100%;margin:0 auto;}
+
+  /* ---- Tarjeta genérica que envuelve cada vista cargada ---- */
+  .card-placeholder{
+    background:var(--panel);padding:34px;border-radius:var(--radio);
+    box-shadow:var(--sombra);border:1px solid var(--borde);animation:aparecer .25s ease;
+  }
+  .card-placeholder h2{color:var(--amarillo);font-size:1.35rem;margin-bottom:8px;}
+  .card-placeholder p{color:var(--gris);line-height:1.55;}
+  @keyframes aparecer{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ---- Hero de bienvenida (vista Inicio) ---- */
+  .hero{
+    display:grid;grid-template-columns:1.05fr .95fr;gap:34px;
+    background:var(--panel);border:1px solid var(--borde);border-radius:var(--radio);
+    padding:38px;box-shadow:var(--sombra);align-items:center;overflow:hidden;
+  }
+  .hero-eyebrow{
+    display:inline-flex;align-items:center;gap:8px;color:var(--amarillo);
+    font-size:.78rem;font-weight:700;background:rgba(245,180,0,.1);
+    padding:6px 12px;border-radius:20px;border:1px solid rgba(245,180,0,.25);margin-bottom:16px;
+  }
+  .hero-eyebrow svg{width:14px;height:14px;stroke:var(--amarillo);fill:none;}
+  .hero h1{font-size:2.1rem;line-height:1.15;font-weight:800;margin-bottom:14px;}
+  .hero h1 em{font-style:normal;color:var(--amarillo);}
+  .hero p{color:var(--gris);line-height:1.6;margin-bottom:24px;max-width:44ch;}
+  .hero-cta{
+    display:inline-flex;align-items:center;gap:10px;background:var(--amarillo);
+    color:#050505;border:none;padding:14px 24px;border-radius:var(--radio-sm);
+    font-weight:700;font-size:.92rem;cursor:pointer;transition:background .15s ease;
+  }
+  .hero-cta:hover{background:var(--amarillo-fuerte);}
+  .hero-cta svg{width:17px;height:17px;stroke:#050505;fill:none;}
+  .hero-art{
+    position:relative;border-radius:var(--radio);overflow:hidden;
+    background:linear-gradient(155deg,#1c1c20,#0c0c0e);
+    border:1px solid var(--borde);aspect-ratio:4/3;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .hero-art svg{width:56%;height:56%;stroke:var(--amarillo);fill:none;opacity:.85;}
+
+  /* ---- Grid de accesos rápidos / beneficios ---- */
+  .welcome-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:22px;}
+  .welcome-tile{
+    border:1px solid var(--borde);border-radius:var(--radio);padding:20px;
+    cursor:pointer;transition:border-color .15s ease,transform .15s ease,background .15s ease;
+    background:var(--panel-2);display:flex;flex-direction:column;gap:10px;
+  }
+  .welcome-tile:hover{border-color:var(--amarillo);background:#000;transform:translateY(-3px);}
+  .tile-icon-wrap{
+    width:38px;height:38px;border-radius:10px;background:rgba(245,180,0,.1);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .welcome-tile-icon{width:19px;height:19px;stroke:var(--amarillo);fill:none;}
+  .welcome-tile h4{font-size:.95rem;color:var(--texto);}
+  .welcome-tile p{font-size:.8rem;color:var(--gris);line-height:1.45;}
+  .tile-arrow{margin-top:auto;display:flex;justify-content:flex-end;}
+  .tile-arrow svg{width:15px;height:15px;stroke:var(--gris-suave);fill:none;transition:transform .15s ease;}
+  .welcome-tile:hover .tile-arrow svg{stroke:var(--amarillo);transform:translateX(3px);}
+
+  .loader{display:flex;align-items:center;gap:10px;padding:50px;color:var(--gris);justify-content:center;}
+  .spinner{width:18px;height:18px;border:3px solid var(--borde);border-top-color:var(--amarillo);border-radius:50%;animation:girar .7s linear infinite;}
+  @keyframes girar{to{transform:rotate(360deg);}}
+
+  /* ================= FOOTER ================= */
+  .footer{background:var(--panel);color:var(--gris);border-top:1px solid var(--borde);padding:0 30px;margin-top:10px;}
+  .footer-bottom{max-width:1160px;margin:0 auto;padding:16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:.78rem;}
+  .footer-bottom .credits strong{color:#d4d4d4;}
+
+  @media (max-width:1000px){
+    .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .2s ease;box-shadow:var(--sombra);z-index:150;}
+    .sidebar.abierto{transform:translateX(0);}
+    .hamburger-btn{display:flex;}
+    .hero{grid-template-columns:1fr;}
+    .hero-art{display:none;}
+    .cuenta-chip .cuenta-texto{display:none;}
+  }
+  @media (max-width:680px){
+    .hero{padding:26px 22px;}
+    .hero h1{font-size:1.6rem;}
+    .hero p{max-width:none;}
+    .welcome-grid{grid-template-columns:1fr 1fr;gap:12px;}
+    .card-placeholder{padding:22px;}
+  }
+  @media (max-width:560px){
+    .footer-bottom{flex-direction:column;text-align:center;}
+    .main-content{padding:18px 14px 28px;}
+    .topbar{padding:12px 14px;gap:10px;}
+    .dropdown-panel{width:calc(100vw - 28px);max-width:280px;right:-6px;}
+    .panel-perfil{width:calc(100vw - 28px);max-width:280px;}
+    .welcome-grid{grid-template-columns:1fr;}
+    .hero-cta{width:100%;justify-content:center;}
+  }
+  @media (max-width:400px){
+    .breadcrumb{display:none;}
+  }
+</style>
+</head>
+<body>
+
+  <!-- Overlay oscuro detrás del menú lateral cuando se abre en celular -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="cerrarSidebar()"></div>
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <button class="brand-link" title="Ir al inicio" onclick="irAlInicio()">
+      <img src="img/1.jpg" alt="Logo El Refugio" class="brand-logo" onerror="this.style.display='none'">
+      <div class="brand-text">
+        <span class="brand-title">EL REFUGIO</span>
+        <span class="brand-subtitle">Control de Cochera</span>
+      </div>
+    </button>
+
+    <nav class="nav-menu">
+      <button class="nav-btn active" data-vista="inicio" onclick="cargarPagina('vistas/inicio.html', this, 'Inicio')">
+        <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+        Inicio
+      </button>
+      <button class="nav-btn" data-vista="sitios" onclick="cargarPagina('vistas/sitios.html', this, 'Sitios')">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 20V4"/></svg>
+        Sitios
+      </button>
+      <button class="nav-btn" data-vista="registro" onclick="cargarPagina('vistas/registro.html', this, 'Registro')">
+        <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        Registro
+      </button>
+      <button class="nav-btn" data-vista="historial" onclick="cargarPagina('vistas/historial.html', this, 'Historial')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Historial
+      </button>
+
+      <button class="nav-btn" data-vista="manual" onclick="cargarPagina('vistas/manual.html', this, 'Ayuda')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>
+        Ayuda
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="login-btn" id="btn-salir-sidebar" onclick="cerrarSesion()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        Cerrar sesión
+      </button>
+    </div>
+  </aside>
+
+  <!-- ===================== LAYOUT PRINCIPAL ===================== -->
+  <div class="layout">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger-btn" id="btn-hamburger" onclick="toggleSidebar()" aria-label="Abrir menú">
+          <svg viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M3 6h18"/><path d="M3 18h18"/></svg>
+        </button>
+        <div class="breadcrumb">El Refugio / <span id="breadcrumb-actual">Inicio</span></div>
+      </div>
+      <div class="topbar-icons">
+
+        
+
+        <!-- ---- Cuenta ---- -->
+        <div class="dropdown-wrap">
+          <button class="cuenta-chip" id="btn-cuenta" onclick="alternarPanel('panel-cuenta')">
+            <span class="avatar" id="cuenta-inicial">U</span>
+            <span class="cuenta-texto">
+              <small>¡Bienvenido!</small>
+              <strong id="cuenta-nombre">Usuario</strong>
+            </span>
+            <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-panel panel-perfil" id="panel-cuenta">
+            <div class="perfil-header">
+              <span class="avatar-grande" id="cuenta-inicial-grande">U</span>
+              <div class="perfil-header-texto">
+                <strong id="cuenta-nombre-grande">Usuario</strong>
+                <span class="perfil-rol" id="cuenta-rol">Usuario</span>
+              </div>
+            </div>
+            <div class="perfil-datos">
+              <div class="perfil-dato">
+                <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 6 10-6"/></svg>
+                <span id="cuenta-correo">—</span>
+              </div>
+              <div class="perfil-dato">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+                <span id="cuenta-usuario">—</span>
+              </div>
+            </div>
+            <div class="cuenta-panel-divisor"></div>
+            <button class="cuenta-panel-item" onclick="cargarPagina('vistas/manual.html', null, 'Ayuda'); alternarPanel('panel-cuenta')">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>
+              Centro de ayuda
+            </button>
+            <div class="cuenta-panel-divisor"></div>
+            <button class="cuenta-panel-item salir" onclick="cerrarSesion()">
+              <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- El contenido de cada sección (incluido "Inicio") se inyecta aquí en tiempo de
+         ejecución vía cargarPagina(), leyendo el archivo real de /vistas/. Así no hay
+         ninguna vista duplicada dentro de este index. -->
+    <main id="contenido-principal" class="main-content">
+      <div class="loader">
+        <div class="spinner"></div>
+        <span>Cargando sección...</span>
+      </div>
+    </main>
+
+    <!-- ===================== FOOTER ===================== -->
+    <footer class="footer">
+      <div class="footer-bottom">
+        
+      </div>
+    </footer>
+  </div><!-- /layout -->
+
+  <script>
+    // Protegido: si el elemento no existe, no se rompe el resto del script
+    const elAnio = document.getElementById('anio-actual');
+    if (elAnio) elAnio.textContent = new Date().getFullYear();
+
+    /* =========================================================
+       FIREBASE — Realtime Database
+       (proyecto nuevo: cochera-87869)
+       ========================================================= */
+    const firebaseConfig = {
+      apiKey: "AIzaSyCQXVOJocqHq5J7Lr0xCcWyNvRD5_D3QNc",
+      authDomain: "cochera-87869.firebaseapp.com",
+      databaseURL: "https://cochera-87869-default-rtdb.firebaseio.com",
+      projectId: "cochera-87869",
+      storageBucket: "cochera-87869.firebasestorage.app",
+      messagingSenderId: "708639254179",
+      appId: "1:708639254179:web:89f38cca4fd7fccdd40116"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    /* Estructura base del proyecto dentro de la BD.
+       Cada clave es una "carpeta" (nodo) donde vivirán los datos
+       de esa sección. Si el nodo no existe todavía, se crea vacío
+       (o con un dato semilla, como el usuario admin de arranque). */
+    const ESTRUCTURA_BASE = {
+      usuarios: {
+        admin: {
+          nombre: "Administrador",
+          usuario: "admin",
+          clave: "admin123",
+          correo: "admin@elrefugio.pe",
+          rol: "admin"
+        }
+      },
+      sitios: {},
+      registros: {},
+      historial: {},
+      calificaciones: {}
+    };
+
+    // Crea cada carpeta que aún no exista en la BD, sin pisar la que ya tenga datos.
+    function asegurarEstructuraBD() {
+      Object.keys(ESTRUCTURA_BASE).forEach((carpeta) => {
+        const refCarpeta = db.ref(carpeta);
+        refCarpeta.once('value').then((snap) => {
+          if (!snap.exists()) {
+            refCarpeta.set(ESTRUCTURA_BASE[carpeta]);
+          }
+        });
+      });
+    }
+    asegurarEstructuraBD();
+
+    /* =========================================================
+       SESIÓN (login.html guarda esto en localStorage al validar
+       usuario y clave contra el nodo "usuarios" de la BD)
+       ========================================================= */
+    function obtenerSesion() {
+      try {
+        return JSON.parse(localStorage.getItem('refugio_sesion'));
+      } catch {
+        return null;
+      }
+    }
+
+    function pintarSesionEnTopbar() {
+      const sesion = obtenerSesion();
+      if (!sesion) return;
+      const nombre = sesion.nombre || sesion.usuario || 'Usuario';
+      const inicial = nombre.charAt(0).toUpperCase();
+
+      // Chip superior
+      document.getElementById('cuenta-nombre').textContent = nombre;
+      document.getElementById('cuenta-inicial').textContent = inicial;
+
+      // Panel de perfil desplegable
+      document.getElementById('cuenta-nombre-grande').textContent = nombre;
+      document.getElementById('cuenta-inicial-grande').textContent = inicial;
+      document.getElementById('cuenta-correo').textContent = sesion.correo || '—';
+      document.getElementById('cuenta-usuario').textContent = sesion.usuario ? '@' + sesion.usuario : '—';
+      document.getElementById('cuenta-rol').textContent = sesion.rol || 'Usuario';
+    }
+
+    function cerrarSesion() {
+      localStorage.removeItem('refugio_sesion');
+      window.location.href = 'login.html';
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      pintarSesionEnTopbar();
+      renderNotificaciones();
+      // Carga la vista de Inicio real (vistas/inicio.html) apenas entra al panel,
+      // igual que cualquier otra sección del menú, para no duplicar ese contenido aquí.
+      cargarPagina('vistas/inicio.html', document.querySelector('[data-vista="inicio"]'), 'Inicio');
+    });
+
+    /* =========================================================
+       PANELES DESPLEGABLES (notificaciones / cuenta)
+       ========================================================= */
+    function alternarPanel(idPanel) {
+      const panel = document.getElementById(idPanel);
+      const yaAbierto = panel.classList.contains('abierto');
+      document.querySelectorAll('.dropdown-panel').forEach(p => p.classList.remove('abierto'));
+      if (!yaAbierto) panel.classList.add('abierto');
+    }
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.dropdown-wrap')) {
+        document.querySelectorAll('.dropdown-panel').forEach(p => p.classList.remove('abierto'));
+      }
+    });
+
+    /* =========================================================
+       NOTIFICACIONES (badge dinámico, marcar como leída/s)
+       ========================================================= */
+    const notificaciones = [
+      { id: 1, texto: 'Espacio A-04 quedó libre recién.', tiempo: 'Hace 5 min', leida: false },
+      { id: 2, texto: 'Nuevo registro de ingreso pendiente de confirmar.', tiempo: 'Hace 22 min', leida: false },
+      { id: 3, texto: 'Se generó el reporte del turno anterior.', tiempo: 'Ayer', leida: true }
+    ];
+
+    function renderNotificaciones() {
+      const lista = document.getElementById('lista-notif');
+      const badge = document.getElementById('notif-badge');
+      const hayNoLeidas = notificaciones.some(n => !n.leida);
+      badge.style.display = hayNoLeidas ? 'block' : 'none';
+
+      if (notificaciones.length === 0) {
+        lista.innerHTML = '<div class="notif-vacio">No tienes notificaciones nuevas.</div>';
+        return;
+      }
+
+      lista.innerHTML = notificaciones.map(n => `
+        <div class="notif-item ${n.leida ? 'leida' : ''}" onclick="marcarNotifLeida(${n.id})">
+          <span class="notif-punto" style="${n.leida ? 'background:var(--gris-suave)' : ''}"></span>
+          <div class="notif-texto">
+            <p>${n.texto}</p>
+            <span>${n.tiempo}</span>
+          </div>
+        </div>`).join('');
+    }
+
+    function marcarNotifLeida(id) {
+      const n = notificaciones.find(x => x.id === id);
+      if (n) n.leida = true;
+      renderNotificaciones();
+    }
+
+    function marcarTodasLeidas() {
+      notificaciones.forEach(n => n.leida = true);
+      renderNotificaciones();
+    }
+
+    /* =========================================================
+       MENÚ LATERAL EN CELULAR (hamburguesa + overlay)
+       ========================================================= */
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('abierto');
+      document.getElementById('sidebar-overlay').classList.toggle('activo');
+    }
+    function cerrarSidebar() {
+      document.getElementById('sidebar').classList.remove('abierto');
+      document.getElementById('sidebar-overlay').classList.remove('activo');
+    }
+
+    /* =========================================================
+       NAVEGACIÓN ENTRE VISTAS
+       ========================================================= */
+    function irAlInicio() {
+      const btnInicio = document.querySelector('[data-vista="inicio"]');
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      if (btnInicio) btnInicio.classList.add('active');
+      document.getElementById('breadcrumb-actual').textContent = 'Inicio';
+      cargarPagina('vistas/inicio.html', btnInicio, 'Inicio');
+    }
+
+    function cargarPagina(url, elementoMenu = null, nombre = '') {
+      const contenedor = document.getElementById('contenido-principal');
+      const breadcrumb = document.getElementById('breadcrumb-actual');
+
+      cerrarSidebar(); // en celular, al navegar se cierra el menú lateral
+
+      if (elementoMenu) {
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        elementoMenu.classList.add('active');
+      }
+
+      if (nombre) breadcrumb.textContent = nombre;
+
+      contenedor.innerHTML = `
+        <div class="loader">
+          <div class="spinner"></div>
+          <span>Cargando sección...</span>
+        </div>`;
+
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error("Error al cargar la sección");
+          return response.text();
+        })
+        .then(html => {
+          contenedor.innerHTML = `<div class="card-placeholder">${html}</div>`;
+          contenedor.querySelectorAll('script').forEach(oldScript => {
+            const nuevoScript = document.createElement('script');
+            if (oldScript.src) {
+              nuevoScript.src = oldScript.src;
+            } else {
+              nuevoScript.textContent = oldScript.textContent;
+            }
+            oldScript.replaceWith(nuevoScript);
+          });
+        })
+        .catch(() => {
+          contenedor.innerHTML = `
+            <div class="card-placeholder" style="border-left:4px solid #ef4444;">
+              <h3 style="color:#ef4444;">Área de trabajo preparada</h3>
+              <p style="margin-top:8px;">Crea la vista en <code>${url}</code> para ver su contenido aquí.</p>
+            </div>`;
+        });
+    }
+  </script>
+</body>
+</html>

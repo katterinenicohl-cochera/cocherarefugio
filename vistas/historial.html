@@ -1,0 +1,649 @@
+<div class="vista-historial">
+
+  <!-- ENCABEZADO -->
+  <div class="hist-header">
+    <div>
+      <h2 class="hist-titulo">Historial de acciones</h2>
+      <p class="hist-subtitulo">Todo lo que ocurrió: ingresos, ediciones, eliminaciones y salidas con su hora, tiempo y cobro</p>
+    </div>
+
+    <div class="hist-stats">
+      <div class="hist-stat-item">
+        <p class="hist-stat-valor" style="color:#22c55e;" id="hist-stat-ingresos">0</p>
+        <p class="hist-stat-label">Ingresos</p>
+      </div>
+      <div class="hist-stat-item">
+        <p class="hist-stat-valor" style="color:#3b82f6;" id="hist-stat-salidas">0</p>
+        <p class="hist-stat-label">Salidas</p>
+      </div>
+      <div class="hist-stat-item">
+        <p class="hist-stat-valor" style="color:#f5b400;" id="hist-stat-ediciones">0</p>
+        <p class="hist-stat-label">Ediciones</p>
+      </div>
+      <div class="hist-stat-item">
+        <p class="hist-stat-valor" style="color:#ef4444;" id="hist-stat-eliminaciones">0</p>
+        <p class="hist-stat-label">Eliminados</p>
+      </div>
+      <div class="hist-stat-item">
+        <p class="hist-stat-valor" style="color:#f5b400;" id="hist-stat-cobrado">S/ 0.00</p>
+        <p class="hist-stat-label">Total cobrado</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="hist-filtros">
+    <input type="text" id="hist-buscar" placeholder="Buscar por placa, conductor o sitio..." oninput="renderizarHistorial()">
+
+    <select id="hist-filtro-tipo" onchange="renderizarHistorial()">
+      <option value="todos">Todas las acciones</option>
+      <option value="ingreso">Ingresos</option>
+      <option value="salida">Salidas</option>
+      <option value="edicion">Ediciones</option>
+      <option value="eliminacion">Eliminaciones</option>
+    </select>
+
+    <label class="hist-fecha">Desde
+      <input type="date" id="hist-desde" onchange="renderizarHistorial()">
+    </label>
+    <label class="hist-fecha">Hasta
+      <input type="date" id="hist-hasta" onchange="renderizarHistorial()">
+    </label>
+
+    <button type="button" id="hist-btn-pdf" class="hist-btn-pdf" onclick="descargarHistorialPDF()">
+      <svg viewBox="0 0 24 24" style="width:15px; height:15px; stroke:#000; fill:none;"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
+      <span id="hist-btn-pdf-texto">Descargar PDF</span>
+    </button>
+    <button type="button" class="hist-btn-borrar" onclick="borrarHistorialSemana()">Borrar semana</button>
+    <button type="button" class="hist-btn-borrar" onclick="borrarHistorialTodo()">Borrar todo</button>
+  </div>
+
+  <p class="hist-nota-limite" id="hist-nota-limite"></p>
+
+  <!-- LÍNEA DE TIEMPO / TABLA -->
+  <div class="hist-tabla-wrap">
+    <table class="tabla-historial">
+      <thead>
+        <tr>
+          <th>Fecha y hora</th>
+          <th>Acción</th>
+          <th>Placa</th>
+          <th>Conductor</th>
+          <th>Sitio</th>
+          <th>Hora de salida</th>
+          <th>Tiempo</th>
+          <th>Tarifa</th>
+          <th>Total pagado</th>
+        </tr>
+      </thead>
+      <tbody id="hist-tabla-body">
+        <!-- filas generadas por JS -->
+      </tbody>
+    </table>
+
+    <p id="hist-tabla-vacio" style="display:none; text-align:center; color:#6b7280; font-size:0.85rem; padding:26px;">
+      Cargando historial...
+    </p>
+  </div>
+
+</div>
+
+<style>
+  .vista-historial{ width:100%; }
+
+  /* ---- Encabezado ---- */
+  .hist-header{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+  .hist-titulo{ color:#f4f4f4; font-size:1.3rem; margin-bottom:4px; }
+  .hist-subtitulo{ color:#a3a3a3; font-size:0.85rem; }
+
+  .hist-stats{ display:flex; gap:18px; flex-wrap:wrap; }
+  .hist-stat-item{ text-align:center; min-width:52px; }
+  .hist-stat-valor{ font-size:1.3rem; font-weight:700; line-height:1.2; }
+  .hist-stat-label{ color:#a3a3a3; font-size:0.75rem; }
+
+  /* ---- Filtros ---- */
+  .hist-filtros{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+  .hist-filtros input{
+    flex:1; min-width:220px; background:#050505; border:1px solid #2a2a2a; color:#f4f4f4;
+    padding:9px 12px; border-radius:6px; font-size:0.85rem;
+  }
+  .hist-filtros select{
+    background:#050505; border:1px solid #2a2a2a; color:#f4f4f4;
+    padding:9px 12px; border-radius:6px; font-size:0.85rem;
+  }
+  .hist-filtros input:focus, .hist-filtros select:focus{ outline:none; border-color:#f5b400; }
+
+  .hist-filtros .hist-fecha{ display:flex; align-items:center; gap:8px; color:#a3a3a3; font-size:0.78rem; }
+  .hist-filtros .hist-fecha input{ flex:none; min-width:0; color-scheme:dark; padding:8px 10px; }
+
+  .hist-btn-pdf{
+    display:inline-flex; align-items:center; gap:8px; background:#f5b400; color:#000; border:none;
+    padding:9px 16px; border-radius:6px; font-size:0.85rem; font-weight:700; cursor:pointer;
+    transition:background .15s ease, opacity .15s ease;
+  }
+  .hist-btn-pdf:hover{ background:#ffca28; }
+  .hist-btn-pdf:disabled{ opacity:.6; cursor:not-allowed; }
+
+  .hist-btn-borrar{
+    background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid #ef4444;
+    padding:9px 14px; border-radius:6px; font-size:0.85rem; font-weight:600; cursor:pointer;
+  }
+  .hist-btn-borrar:hover{ background:#ef4444; color:#fff; }
+
+  .hist-nota-limite{ color:#6b7280; font-size:0.72rem; margin:0 0 14px 2px; min-height:1em; }
+
+  /* ---- Tabla ---- */
+  .hist-tabla-wrap{ background:#1a1a1a; border:1px solid #2a2a2a; border-radius:10px; overflow-x:auto; }
+  .tabla-historial{ width:100%; border-collapse:collapse; font-size:0.82rem; min-width:1000px; }
+  .tabla-historial thead tr{ background:#0d0d0d; text-align:left; }
+  .tabla-historial th{ padding:12px 14px; color:#a3a3a3; font-weight:600; }
+
+  .hist-badge{
+    display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px;
+    font-size:0.72rem; font-weight:700; letter-spacing:0.3px;
+  }
+  .hist-badge svg{ width:12px; height:12px; fill:none; }
+  .hist-badge.ingreso{ background:rgba(34,197,94,0.15); color:#22c55e; border:1px solid #22c55e; }
+  .hist-badge.ingreso svg{ stroke:#22c55e; }
+  .hist-badge.salida{ background:rgba(59,130,246,0.15); color:#3b82f6; border:1px solid #3b82f6; }
+  .hist-badge.salida svg{ stroke:#3b82f6; }
+  .hist-badge.edicion{ background:rgba(245,180,0,0.15); color:#f5b400; border:1px solid #f5b400; }
+  .hist-badge.edicion svg{ stroke:#f5b400; }
+  .hist-badge.eliminacion{ background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid #ef4444; }
+  .hist-badge.eliminacion svg{ stroke:#ef4444; }
+
+  .hist-fila td{ padding:11px 14px; border-top:1px solid #2a2a2a; color:#f4f4f4; vertical-align:middle; }
+  .hist-total{ color:#f5b400; font-weight:800; font-size:0.9rem; }
+  .hist-sub{ display:block; color:#6b7280; font-size:0.7rem; margin-top:2px; }
+
+  /* =========================================================
+     RESPONSIVE — celular / tablet
+     ========================================================= */
+  @media (max-width: 900px){
+    .hist-stats{ gap:12px; width:100%; justify-content:space-between; }
+    .hist-stat-item{ flex:1; min-width:0; }
+  }
+  @media (max-width: 700px){
+    .hist-titulo{ font-size:1.12rem; }
+    .hist-filtros select{ width:100%; }
+    .hist-filtros .hist-fecha{ flex:1; justify-content:space-between; min-width:140px; }
+    .hist-filtros .hist-fecha input{ flex:1; }
+    .hist-btn-borrar, .hist-btn-pdf{ width:100%; justify-content:center; }
+    .hist-stat-valor{ font-size:1.1rem; }
+  }
+  @media (max-width: 760px){
+    .tabla-historial thead{ display:none; }
+    .tabla-historial{ min-width:0; }
+    .tabla-historial, .tabla-historial tbody, .tabla-historial tr, .hist-fila td{ display:block; width:100%; }
+    .hist-fila{ border:1px solid #2a2a2a; border-radius:10px; margin:10px; padding:2px 0; background:#141414; }
+    .hist-fila td{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      border-top:none; border-bottom:1px solid #232323; padding:9px 12px;
+    }
+    .hist-fila td:last-child{ border-bottom:none; }
+    .hist-fila td::before{
+      content:attr(data-label); color:#6b7280; font-size:0.68rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:.4px; flex-shrink:0;
+    }
+  }
+  @media (max-width: 420px){
+    .hist-stats{ gap:8px; }
+    .hist-stat-label{ font-size:0.68rem; }
+  }
+</style>
+
+<script>
+(function () {
+  // ------------------------------------------------------------
+  // Historial conectado a Firebase Realtime Database.
+  // Lee el nodo "historial", alimentado por registro.html cada vez
+  // que se crea, edita, marca salida o elimina un registro.
+  // Las salidas guardan además: hora de ingreso, hora de salida,
+  // tiempo, tarifa y total pagado.
+  //
+  // REPORTE PDF: el botón "Descargar PDF" exporta lo que se ve en la
+  // tabla (respeta búsqueda, tipo de acción y rango de fechas).
+  // ------------------------------------------------------------
+
+  // Proyecto nuevo: cochera-87869
+  const CONFIG_FIREBASE = {
+    apiKey: "AIzaSyCQXVOJocqHq5J7Lr0xCcWyNvRD5_D3QNc",
+    authDomain: "cochera-87869.firebaseapp.com",
+    databaseURL: "https://cochera-87869-default-rtdb.firebaseio.com",
+    projectId: "cochera-87869",
+    storageBucket: "cochera-87869.firebasestorage.app",
+    messagingSenderId: "708639254179",
+    appId: "1:708639254179:web:89f38cca4fd7fccdd40116"
+  };
+
+  const NOMBRE_NEGOCIO = 'El Refugio'; // <- cambia el nombre si quieres
+
+  const elTablaVacio = document.getElementById('hist-tabla-vacio');
+
+  // Chequeo defensivo: si el SDK de Firebase no llegó a cargar, se
+  // avisa en la tabla en vez de que la vista se rompa en silencio.
+  if (!window.firebase || !window.firebase.database) {
+    if (elTablaVacio) {
+      elTablaVacio.textContent = 'No se pudo cargar la conexión con la base de datos. Revisa tu internet y recarga la página.';
+      elTablaVacio.style.display = 'block';
+    }
+    return;
+  }
+
+  if (!window.firebase.apps.length) {
+    window.firebase.initializeApp(CONFIG_FIREBASE);
+  }
+  const dbHist = window.firebase.database();
+  // Solo se trae un lote de las acciones más recientes para no
+  // descargar miles de entradas en cada cambio.
+  const LIMITE_HISTORIAL = 300;
+  const refHistorial = dbHist.ref('historial').limitToLast(LIMITE_HISTORIAL);
+
+  let cacheHistorial = []; // se llena en tiempo real
+
+  const INFO_TIPO = {
+    ingreso: { etiqueta: 'Ingreso', icono: '<path d="M12 5v14M5 12h14"/>' },
+    salida: { etiqueta: 'Salida', icono: '<path d="M9 6l6 6-6 6"/>' },
+    edicion: { etiqueta: 'Edición', icono: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>' },
+    eliminacion: { etiqueta: 'Eliminación', icono: '<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>' }
+  };
+
+  const tieneValor = (v) => v !== undefined && v !== null && v !== '' && isFinite(v);
+  const dinero = (n) => 'S/ ' + Number(n).toFixed(2);
+
+  function formatearFechaHora(fechaISO) {
+    if (!fechaISO) return '—';
+    const f = new Date(fechaISO);
+    return f.toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' }) + ' · ' +
+           f.toLocaleTimeString('es-PE', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  function formatearCorto(fechaISO) {
+    if (!fechaISO) return '—';
+    const f = new Date(fechaISO);
+    return f.toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit' }) + ' ' +
+           f.toLocaleTimeString('es-PE', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  function formatearDuracion(min) {
+    return Math.floor(min / 60) + ' h ' + String(min % 60).padStart(2, '0') + ' min';
+  }
+
+  // Escapa texto antes de insertarlo en el HTML de la tabla.
+  function escaparTexto(valor) {
+    return String(valor ?? '—').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  // Celdas de detalle de cobro: solo las "salidas" las traen.
+  function celdasDetalle(h) {
+    if (h.tipo !== 'salida') {
+      return {
+        salida: '—', tiempo: '—', tarifa: '—', total: '—'
+      };
+    }
+
+    let tarifa = '—';
+    if (tieneValor(h.tarifaMonto)) {
+      tarifa = h.tarifaTipo === 'fija'
+        ? 'Fija ' + dinero(h.tarifaMonto)
+        : dinero(h.tarifaMonto) + ' /h' + (tieneValor(h.horas) ? `<span class="hist-sub">× ${Number(h.horas)} h cobradas</span>` : '');
+    }
+
+    return {
+      salida: formatearCorto(h.horaSalida || h.fecha),
+      tiempo: tieneValor(h.minutos) ? formatearDuracion(Number(h.minutos)) : '—',
+      tarifa,
+      total: tieneValor(h.total) ? `<span class="hist-total">${dinero(h.total)}</span>` : '—'
+    };
+  }
+
+  // ------------------------------------------------------------
+  // Filtros (búsqueda + tipo + rango de fechas). Los usan la tabla
+  // en pantalla y el PDF, para que ambos muestren lo mismo.
+  // ------------------------------------------------------------
+  function obtenerFiltrados() {
+    const texto = document.getElementById('hist-buscar').value.trim().toLowerCase();
+    const filtroTipo = document.getElementById('hist-filtro-tipo').value;
+    const desdeVal = document.getElementById('hist-desde').value;
+    const hastaVal = document.getElementById('hist-hasta').value;
+
+    // new Date('YYYY-MM-DDT00:00:00') se interpreta en hora local.
+    const desdeMs = desdeVal ? new Date(desdeVal + 'T00:00:00').getTime() : null;
+    const hastaMs = hastaVal ? new Date(hastaVal + 'T23:59:59.999').getTime() : null;
+
+    return cacheHistorial.filter(h => {
+      const coincideTexto = !texto ||
+        (h.placa || '').toLowerCase().includes(texto) ||
+        (h.conductor || '').toLowerCase().includes(texto) ||
+        (h.sitio || '').toLowerCase().includes(texto);
+      const coincideTipo = filtroTipo === 'todos' || h.tipo === filtroTipo;
+      const t = new Date(h.fecha).getTime();
+      const coincideDesde = desdeMs === null || t >= desdeMs;
+      const coincideHasta = hastaMs === null || t <= hastaMs;
+      return coincideTexto && coincideTipo && coincideDesde && coincideHasta;
+    });
+  }
+
+  window.renderizarHistorial = function () {
+    const filtrados = obtenerFiltrados();
+
+    const cuerpo = document.getElementById('hist-tabla-body');
+    const vacio = document.getElementById('hist-tabla-vacio');
+    cuerpo.innerHTML = '';
+
+    if (filtrados.length === 0) {
+      vacio.textContent = cacheHistorial.length === 0
+        ? 'Todavía no hay acciones registradas. Aparecerán aquí en cuanto uses Registro.'
+        : 'No hay acciones que coincidan con la búsqueda.';
+      vacio.style.display = 'block';
+    } else {
+      vacio.style.display = 'none';
+
+      filtrados.forEach(h => {
+        const info = INFO_TIPO[h.tipo] || { etiqueta: h.tipo, icono: '' };
+        const d = celdasDetalle(h);
+        const fila = document.createElement('tr');
+        fila.className = 'hist-fila';
+
+        fila.innerHTML = `
+          <td data-label="Fecha y hora">${formatearFechaHora(h.fecha)}</td>
+          <td data-label="Acción">
+            <span class="hist-badge ${escaparTexto(h.tipo)}">
+              <svg viewBox="0 0 24 24">${info.icono}</svg>
+              ${escaparTexto(info.etiqueta)}
+            </span>
+          </td>
+          <td data-label="Placa" style="font-weight:700;">${escaparTexto(h.placa)}</td>
+          <td data-label="Conductor">${escaparTexto(h.conductor)}</td>
+          <td data-label="Sitio">${escaparTexto(h.sitio)}</td>
+          <td data-label="Salida">${d.salida}</td>
+          <td data-label="Tiempo">${d.tiempo}</td>
+          <td data-label="Tarifa">${d.tarifa}</td>
+          <td data-label="Total pagado">${d.total}</td>`;
+        cuerpo.appendChild(fila);
+      });
+    }
+
+    actualizarStatsHistorial(cacheHistorial);
+
+    const notaLimite = document.getElementById('hist-nota-limite');
+    if (notaLimite) {
+      notaLimite.textContent = cacheHistorial.length >= LIMITE_HISTORIAL
+        ? `Mostrando las últimas ${LIMITE_HISTORIAL} acciones registradas.`
+        : '';
+    }
+  };
+
+  function actualizarStatsHistorial(historial) {
+    const salidas = historial.filter(h => h.tipo === 'salida');
+    const cobrado = salidas.reduce((suma, h) => suma + (tieneValor(h.total) ? Number(h.total) : 0), 0);
+
+    document.getElementById('hist-stat-ingresos').textContent = historial.filter(h => h.tipo === 'ingreso').length;
+    document.getElementById('hist-stat-salidas').textContent = salidas.length;
+    document.getElementById('hist-stat-ediciones').textContent = historial.filter(h => h.tipo === 'edicion').length;
+    document.getElementById('hist-stat-eliminaciones').textContent = historial.filter(h => h.tipo === 'eliminacion').length;
+    document.getElementById('hist-stat-cobrado').textContent = dinero(cobrado);
+  }
+
+  // ------------------------------------------------------------
+  // REPORTE EN PDF (jsPDF + jsPDF-AutoTable, cargados al pulsar el botón)
+  // ------------------------------------------------------------
+  function cargarScriptExterno(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('No se pudo cargar ' + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function cargarLibsPDF() {
+    if (!(window.jspdf && window.jspdf.jsPDF)) {
+      await cargarScriptExterno('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    }
+    const prueba = new window.jspdf.jsPDF();
+    if (typeof prueba.autoTable !== 'function') {
+      await cargarScriptExterno('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js');
+    }
+    return window.jspdf.jsPDF;
+  }
+
+  // Versión en texto plano de la fila (sin HTML) para el PDF.
+  function filaPlana(h) {
+    const info = INFO_TIPO[h.tipo] || { etiqueta: h.tipo || '-' };
+    let salida = '-', tiempo = '-', tarifa = '-', total = '-';
+    if (h.tipo === 'salida') {
+      salida = formatearCorto(h.horaSalida || h.fecha);
+      if (tieneValor(h.minutos)) tiempo = formatearDuracion(Number(h.minutos));
+      if (tieneValor(h.tarifaMonto)) {
+        tarifa = h.tarifaTipo === 'fija'
+          ? 'Fija ' + dinero(h.tarifaMonto)
+          : dinero(h.tarifaMonto) + ' /h' + (tieneValor(h.horas) ? ' x ' + Number(h.horas) + ' h' : '');
+      }
+      if (tieneValor(h.total)) total = dinero(h.total);
+    }
+    return [
+      formatearFechaHora(h.fecha).replace(' · ', '  '),
+      info.etiqueta,
+      String(h.placa || '-'),
+      String(h.conductor || '-'),
+      String(h.sitio || '-'),
+      salida, tiempo, tarifa, total
+    ];
+  }
+
+  const COLOR_TIPO = {
+    ingreso: [22, 163, 74],
+    salida: [37, 99, 235],
+    edicion: [180, 130, 0],
+    eliminacion: [220, 38, 38]
+  };
+
+  function textoFiltros() {
+    const partes = [];
+    const tipo = document.getElementById('hist-filtro-tipo');
+    partes.push('Acciones: ' + tipo.options[tipo.selectedIndex].text);
+    const q = document.getElementById('hist-buscar').value.trim();
+    if (q) partes.push('Busqueda: "' + q + '"');
+    const fmt = (v) => v.split('-').reverse().join('/');
+    const d = document.getElementById('hist-desde').value;
+    const h = document.getElementById('hist-hasta').value;
+    if (d) partes.push('Desde ' + fmt(d));
+    if (h) partes.push('Hasta ' + fmt(h));
+    if (!d && !h) partes.push('Todo el periodo');
+    return partes.join('   |   ');
+  }
+
+  window.descargarHistorialPDF = async function () {
+    const filtrados = obtenerFiltrados();
+    if (filtrados.length === 0) {
+      alert('No hay acciones para exportar con los filtros actuales.');
+      return;
+    }
+
+    const btn = document.getElementById('hist-btn-pdf');
+    const txt = document.getElementById('hist-btn-pdf-texto');
+    btn.disabled = true;
+    txt.textContent = 'Generando PDF...';
+
+    try {
+      const jsPDF = await cargarLibsPDF();
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const W = doc.internal.pageSize.getWidth();   // 297
+      const Hh = doc.internal.pageSize.getHeight(); // 210
+      const M = 10;
+
+      // ---- Cabecera de la primera página ----
+      doc.setFillColor(10, 10, 11);
+      doc.rect(0, 0, W, 24, 'F');
+      doc.setFillColor(245, 180, 0);
+      doc.rect(0, 24, W, 1.6, 'F');
+
+      doc.setTextColor(245, 180, 0);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text(NOMBRE_NEGOCIO.toUpperCase(), M, 12);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.text('HISTORIAL DE ACCIONES', M, 19);
+
+      doc.setTextColor(170, 170, 175);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text('Generado: ' + formatearFechaHora(new Date().toISOString()).replace(' · ', '  '), W - M, 12, { align: 'right' });
+      doc.text(filtrados.length + ' registros', W - M, 19, { align: 'right' });
+
+      doc.setTextColor(90, 90, 95);
+      doc.setFontSize(8.5);
+      doc.text(textoFiltros(), M, 32);
+
+      // ---- Resumen del reporte (según los filtros aplicados) ----
+      const cuenta = (t) => filtrados.filter(h => h.tipo === t).length;
+      const cobrado = filtrados
+        .filter(h => h.tipo === 'salida' && tieneValor(h.total))
+        .reduce((s, h) => s + Number(h.total), 0);
+      const resumen = [
+        ['Ingresos', String(cuenta('ingreso')), COLOR_TIPO.ingreso],
+        ['Salidas', String(cuenta('salida')), COLOR_TIPO.salida],
+        ['Ediciones', String(cuenta('edicion')), COLOR_TIPO.edicion],
+        ['Eliminados', String(cuenta('eliminacion')), COLOR_TIPO.eliminacion],
+        ['Total cobrado', dinero(cobrado), [20, 20, 22]]
+      ];
+      const gap = 4;
+      const bw = (W - 2 * M - gap * (resumen.length - 1)) / resumen.length;
+      resumen.forEach((r, i) => {
+        const x = M + i * (bw + gap);
+        const esTotal = i === resumen.length - 1;
+        if (esTotal) doc.setFillColor(245, 180, 0); else doc.setFillColor(244, 244, 246);
+        doc.roundedRect(x, 36, bw, 14, 2, 2, 'F');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(esTotal ? 60 : 110, esTotal ? 45 : 110, esTotal ? 0 : 115);
+        doc.text(r[0], x + bw / 2, 41, { align: 'center' });
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(r[2][0], r[2][1], r[2][2]);
+        doc.text(r[1], x + bw / 2, 47.5, { align: 'center' });
+      });
+
+      // ---- Tabla ----
+      doc.autoTable({
+        head: [['Fecha y hora', 'Accion', 'Placa', 'Conductor', 'Sitio', 'Salida', 'Tiempo', 'Tarifa', 'Total pagado']],
+        body: filtrados.map(filaPlana),
+        startY: 55,
+        margin: { left: M, right: M, top: 18, bottom: 14 },
+        theme: 'grid',
+        styles: {
+          font: 'helvetica', fontSize: 8, cellPadding: 2,
+          lineColor: [225, 225, 228], lineWidth: 0.1, textColor: [30, 30, 34], overflow: 'linebreak'
+        },
+        headStyles: { fillColor: [10, 10, 11], textColor: [245, 180, 0], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [247, 247, 248] },
+        columnStyles: {
+          0: { cellWidth: 38 },
+          1: { cellWidth: 24, fontStyle: 'bold' },
+          2: { cellWidth: 24, fontStyle: 'bold' },
+          3: { cellWidth: 50 },
+          4: { cellWidth: 16, halign: 'center' },
+          5: { cellWidth: 30 },
+          6: { cellWidth: 26 },
+          7: { cellWidth: 36 },
+          8: { cellWidth: 33, halign: 'right', fontStyle: 'bold' }
+        },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 1) {
+            const t = filtrados[data.row.index].tipo;
+            const c = COLOR_TIPO[t];
+            if (c) data.cell.styles.textColor = c;
+          }
+        },
+        didDrawPage: (data) => {
+          // En las páginas siguientes se repite una franja con el nombre.
+          if (data.pageNumber > 1) {
+            doc.setFillColor(10, 10, 11);
+            doc.rect(0, 0, W, 11, 'F');
+            doc.setFillColor(245, 180, 0);
+            doc.rect(0, 11, W, 1, 'F');
+            doc.setTextColor(245, 180, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.text(NOMBRE_NEGOCIO.toUpperCase() + '  -  Historial de acciones', M, 7.2);
+          }
+        }
+      });
+
+      // ---- Pie con numeración "Pagina X de Y" ----
+      const total = doc.getNumberOfPages();
+      for (let i = 1; i <= total; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(210, 210, 214);
+        doc.line(M, Hh - 10, W - M, Hh - 10);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(120, 120, 125);
+        doc.text(NOMBRE_NEGOCIO + '  -  Historial de acciones', M, Hh - 5.5);
+        doc.text('Pagina ' + i + ' de ' + total, W - M, Hh - 5.5, { align: 'right' });
+      }
+
+      const hoy = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const fechaArchivo = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1) + '-' + pad(hoy.getDate());
+      doc.save('Historial-' + NOMBRE_NEGOCIO.replace(/\s+/g, '-') + '-' + fechaArchivo + '.pdf');
+    } catch (err) {
+      console.error('No se pudo generar el PDF del historial:', err);
+      alert('No se pudo generar el PDF. Revisa tu conexión a internet e intenta de nuevo.');
+    } finally {
+      btn.disabled = false;
+      txt.textContent = 'Descargar PDF';
+    }
+  };
+
+  // ------------------------------------------------------------
+  // Borrado del historial
+  // ------------------------------------------------------------
+  window.borrarHistorialTodo = function () {
+    if (!confirm('¿Borrar TODO el historial? Esta acción no se puede deshacer.')) return;
+    dbHist.ref('historial').remove()
+      .catch(err => { console.error(err); alert('No se pudo borrar el historial.'); });
+  };
+
+  // Borra las acciones de los últimos 7 días.
+  window.borrarHistorialSemana = function () {
+    if (!confirm('¿Borrar las acciones de los últimos 7 días? Esta acción no se puede deshacer.')) return;
+    const limite = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    dbHist.ref('historial').once('value').then(snap => {
+      const datos = snap.val() || {};
+      const updates = {};
+      Object.keys(datos).forEach(id => {
+        const t = new Date(datos[id].fecha).getTime();
+        if (t >= limite) updates[id] = null;
+      });
+      if (Object.keys(updates).length === 0) {
+        alert('No hay acciones en los últimos 7 días.');
+        return;
+      }
+      return dbHist.ref('historial').update(updates);
+    }).catch(err => { console.error(err); alert('No se pudo borrar el historial.'); });
+  };
+
+  // Evita apilar listeners si esta vista se abre varias veces
+  // durante la misma sesión.
+  if (window._listenerHistorialActivo) refHistorial.off('value', window._listenerHistorialActivo);
+  window._listenerHistorialActivo = refHistorial.on('value', (snap) => {
+    const datos = snap.val() || {};
+    cacheHistorial = Object.keys(datos).map(id => ({ id, ...datos[id] }));
+    // Más reciente primero.
+    cacheHistorial.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    renderizarHistorial();
+  }, (err) => {
+    console.error('Error leyendo el historial en tiempo real:', err);
+    elTablaVacio.textContent = 'No se pudo conectar con la base de datos.';
+    elTablaVacio.style.display = 'block';
+  });
+
+})();
+</script>

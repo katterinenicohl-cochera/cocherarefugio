@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar sesión | El Refugio</title>
+
+  <!-- ============ FIREBASE (Realtime Database) ============ -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --negro: #050505;
+      --negro-panel: #111111;
+      --negro-suave: #1a1a1a;
+      --amarillo: #f5b400;
+      --amarillo-fuerte: #ffca28;
+      --texto-claro: #f4f4f4;
+      --texto-gris: #a3a3a3;
+      --borde: #2a2a2a;
+      --radio: 10px;
+      --sombra: 0 4px 16px rgba(0, 0, 0, 0.5);
+      --rojo: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #141414, #050505 70%);
+      color: var(--texto-claro);
+      padding: 20px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 380px;
+      background: var(--negro-panel);
+      border: 1px solid var(--borde);
+      border-radius: var(--radio);
+      box-shadow: var(--sombra);
+      padding: 34px 30px;
+      animation: aparecer 0.3s ease;
+    }
+
+    @keyframes aparecer {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 26px;
+      text-align: center;
+    }
+
+    .login-brand img {
+      width: 56px;
+      height: 56px;
+      object-fit: contain;
+      border-radius: 50%;
+      background: #000;
+      border: 2px solid var(--amarillo);
+    }
+
+    .login-brand .titulo {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--amarillo);
+      letter-spacing: 1px;
+    }
+
+    .login-brand .subtitulo {
+      font-size: 0.78rem;
+      color: var(--texto-gris);
+    }
+
+    .campo {
+      margin-bottom: 16px;
+    }
+
+    .campo label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--texto-gris);
+      margin-bottom: 6px;
+    }
+
+    .campo-input-wrap {
+      position: relative;
+    }
+
+    .campo-input-wrap svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      stroke: var(--texto-gris);
+      fill: none;
+      pointer-events: none;
+    }
+
+    .campo input {
+      width: 100%;
+      background: var(--negro);
+      border: 1px solid var(--borde);
+      color: var(--texto-claro);
+      padding: 11px 12px 11px 36px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      transition: border-color 0.2s ease;
+    }
+
+    .campo input:focus {
+      outline: none;
+      border-color: var(--amarillo);
+    }
+
+    .campo input:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .toggle-pass {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--texto-gris);
+      font-size: 0.75rem;
+    }
+
+    .toggle-pass:hover {
+      color: var(--amarillo-fuerte);
+    }
+
+    .mensaje-error {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: var(--rojo);
+      font-size: 0.8rem;
+      padding: 9px 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .mensaje-error svg {
+      width: 15px;
+      height: 15px;
+      stroke: var(--rojo);
+      fill: none;
+      flex-shrink: 0;
+    }
+
+    .aviso-inicial {
+      display: none;
+      background: rgba(245, 180, 0, 0.1);
+      border: 1px solid rgba(245, 180, 0, 0.4);
+      color: var(--amarillo-fuerte);
+      font-size: 0.78rem;
+      line-height: 1.5;
+      padding: 9px 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .btn-login {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--amarillo);
+      color: #000;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-login:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .btn-login svg {
+      width: 17px;
+      height: 17px;
+      stroke: #000;
+      fill: none;
+    }
+
+    .btn-login .spinner {
+      width: 15px;
+      height: 15px;
+      border: 2.5px solid rgba(0,0,0,.25);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: girar 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes girar { to { transform: rotate(360deg); } }
+
+    .btn-login.cargando .spinner { display: inline-block; }
+    .btn-login.cargando svg { display: none; }
+
+    .btn-login:hover:not(:disabled) {
+      background: var(--amarillo-fuerte);
+      box-shadow: 0 0 14px rgba(245, 180, 0, 0.45);
+    }
+
+    .login-footer-note {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--texto-gris);
+      line-height: 1.5;
+    }
+
+    .login-footer-note strong {
+      color: var(--texto-claro);
+    }
+
+    .volver-link {
+      display: block;
+      text-align: center;
+      margin-top: 14px;
+      font-size: 0.78rem;
+      color: var(--texto-gris);
+      text-decoration: none;
+    }
+
+    .volver-link:hover {
+      color: var(--amarillo-fuerte);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-box">
+    <div class="login-brand">
+      <img src="img/1.jpg" alt="Logo El Refugio" onerror="this.style.display='none'">
+      <span class="titulo">EL REFUGIO</span>
+      <span class="subtitulo">Acceso exclusivo para personal autorizado</span>
+    </div>
+
+    <div class="aviso-inicial" id="aviso-inicial"></div>
+
+    <div class="mensaje-error" id="mensaje-error">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+      <span id="mensaje-error-texto">Usuario o contraseña incorrectos.</span>
+    </div>
+
+    <form id="form-login" autocomplete="off">
+      <div class="campo">
+        <label for="usuario">Usuario</label>
+        <div class="campo-input-wrap">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <input type="text" id="usuario" name="usuario" placeholder="Ingresa tu usuario" required>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="clave">Contraseña</label>
+        <div class="campo-input-wrap">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="clave" name="clave" placeholder="Ingresa tu contraseña" required>
+          <button type="button" class="toggle-pass" id="toggle-pass">Ver</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login" id="btn-login">
+        <div class="spinner"></div>
+        <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+        <span id="btn-login-texto">Iniciar sesión</span>
+      </button>
+    </form>
+
+    <p class="login-footer-note">
+      Este acceso es <strong>solo para trabajadores</strong> de El Refugio.<br>
+      Las credenciales son entregadas por el dueño del establecimiento.
+    </p>
+
+    <a href="index.html" class="volver-link">← Volver al inicio</a>
+  </div>
+
+  <script>
+    /* =========================================================
+       FIREBASE — Realtime Database
+       (proyecto nuevo: cochera-87869)
+       ========================================================= */
+    const firebaseConfig = {
+      apiKey: "AIzaSyCQXVOJocqHq5J7Lr0xCcWyNvRD5_D3QNc",
+      authDomain: "cochera-87869.firebaseapp.com",
+      databaseURL: "https://cochera-87869-default-rtdb.firebaseio.com",
+      projectId: "cochera-87869",
+      storageBucket: "cochera-87869.firebasestorage.app",
+      messagingSenderId: "708639254179",
+      appId: "1:708639254179:web:89f38cca4fd7fccdd40116"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const form = document.getElementById('form-login');
+    const mensajeError = document.getElementById('mensaje-error');
+    const mensajeErrorTexto = document.getElementById('mensaje-error-texto');
+    const avisoInicial = document.getElementById('aviso-inicial');
+    const inputUsuario = document.getElementById('usuario');
+    const inputClave = document.getElementById('clave');
+    const togglePass = document.getElementById('toggle-pass');
+    const btnLogin = document.getElementById('btn-login');
+    const btnLoginTexto = document.getElementById('btn-login-texto');
+
+    /* =========================================================
+       PRIMER ARRANQUE: si la BD está vacía (no existe el nodo
+       "usuarios"), se crea automáticamente un administrador
+       inicial para poder entrar.
+       Usuario: admin  |  Contraseña: admin123
+       ¡Cámbiala después desde crear_usuario.html!
+       ========================================================= */
+    const ADMIN_INICIAL = {
+      usuario: 'admin',
+      clave: 'admin123',
+      nombre: 'Administrador',
+      correo: '',
+      rol: 'admin'
+    };
+
+    db.ref('usuarios').once('value')
+      .then((snap) => {
+        if (!snap.exists()) {
+          return db.ref('usuarios/' + ADMIN_INICIAL.usuario).set(ADMIN_INICIAL)
+            .then(() => {
+              avisoInicial.innerHTML = 'Base de datos nueva: se creó el usuario inicial.<br>' +
+                'Usuario: <strong>admin</strong> · Contraseña: <strong>admin123</strong>';
+              avisoInicial.style.display = 'block';
+            });
+        }
+      })
+      .catch((err) => {
+        console.error('No se pudo verificar/crear el nodo usuarios:', err);
+      });
+
+    togglePass.addEventListener('click', () => {
+      const esPassword = inputClave.type === 'password';
+      inputClave.type = esPassword ? 'text' : 'password';
+      togglePass.textContent = esPassword ? 'Ocultar' : 'Ver';
+    });
+
+    function mostrarError(texto) {
+      mensajeErrorTexto.textContent = texto;
+      mensajeError.style.display = 'flex';
+    }
+
+    function ponerCargando(activo) {
+      btnLogin.disabled = activo;
+      inputUsuario.disabled = activo;
+      inputClave.disabled = activo;
+      btnLogin.classList.toggle('cargando', activo);
+      btnLoginTexto.textContent = activo ? 'Verificando…' : 'Iniciar sesión';
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const usuario = inputUsuario.value.trim();
+      const clave = inputClave.value;
+
+      if (!usuario || !clave) return;
+
+      mensajeError.style.display = 'none';
+      ponerCargando(true);
+
+      // Busca en la BD, dentro del nodo "usuarios", a quien tenga
+      // ese "usuario" exactamente (los nodos están indexados por el
+      // propio usuario, ej. usuarios/admin, usuarios/123, etc.)
+      db.ref('usuarios/' + usuario).once('value')
+        .then((snap) => {
+          if (!snap.exists()) {
+            throw new Error('no-existe');
+          }
+          const datos = snap.val();
+          if (datos.clave !== clave) {
+            throw new Error('clave-incorrecta');
+          }
+
+          // Credenciales correctas: guarda la sesión para que
+          // index.html (y las demás vistas) sepan quién entró.
+          localStorage.setItem('refugio_sesion', JSON.stringify({
+            usuario: usuario,
+            nombre: datos.nombre || usuario,
+            correo: datos.correo || '',
+            rol: datos.rol || 'trabajador'
+          }));
+
+          window.location.href = 'index.html';
+        })
+        .catch((err) => {
+          if (err && err.code) {
+            // Error real de conexión/permisos con Firebase.
+            mostrarError('No se pudo conectar con la base de datos. Intenta de nuevo.');
+          } else {
+            mostrarError('Usuario o contraseña incorrectos.');
+          }
+          inputClave.value = '';
+          inputClave.focus();
+        })
+        .finally(() => {
+          ponerCargando(false);
+        });
+    });
+  </script>
+
+</body>
+</html>

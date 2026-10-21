@@ -1,0 +1,1425 @@
+<div class="vista-registro">
+
+  <!-- ENCABEZADO -->
+  <div class="reg-header">
+    <div>
+      <h2 class="reg-titulo">
+        Registro de vehículos
+      </h2>
+      <p class="reg-subtitulo">Registra el ingreso, edita o marca la salida de un vehículo</p>
+    </div>
+
+    <div class="reg-stats">
+      <div class="reg-stat-item">
+        <p class="reg-stat-valor" style="color:#ef4444;" id="reg-stat-ocupados">0</p>
+        <p class="reg-stat-label">Ocupados</p>
+      </div>
+      <div class="reg-stat-item">
+        <p class="reg-stat-valor" style="color:#f5b400;" id="reg-stat-pendientes">0</p>
+        <p class="reg-stat-label">Pendientes</p>
+      </div>
+      <div class="reg-stat-item">
+        <p class="reg-stat-valor" style="color:#22c55e;" id="reg-stat-finalizados">0</p>
+        <p class="reg-stat-label">Finalizados</p>
+      </div>
+      <div class="reg-stat-item">
+        <p class="reg-stat-valor" style="color:#f4f4f4;" id="reg-stat-total">0</p>
+        <p class="reg-stat-label">Total</p>
+      </div>
+      <div class="reg-stat-item">
+        <p class="reg-stat-valor" style="color:#f5b400;" id="reg-stat-cobrado">S/ 0.00</p>
+        <p class="reg-stat-label">Cobrado hoy</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORMULARIO: CREAR / EDITAR -->
+  <div class="reg-panel">
+    <h3 id="reg-form-titulo" class="reg-panel-titulo">Nuevo registro de ingreso</h3>
+
+    <form id="reg-form">
+      <input type="hidden" id="reg-id">
+      <input type="hidden" id="reg-sitio">
+
+      <div class="reg-grid-campos">
+
+        <div class="reg-campo">
+          <label for="reg-placa">Placa *</label>
+          <input type="text" id="reg-placa" placeholder="Ej: ABC-123" required maxlength="10" style="text-transform:uppercase;">
+        </div>
+
+        <div class="reg-campo">
+          <label for="reg-tipo">Tipo de vehículo</label>
+          <select id="reg-tipo">
+            <option value="Auto">Auto</option>
+            <option value="Camioneta">Camioneta</option>
+            <option value="Moto">Moto</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+
+        <div class="reg-campo">
+          <label for="reg-conductor">Conductor *</label>
+          <input type="text" id="reg-conductor" placeholder="Nombre del conductor" required>
+        </div>
+
+        <div class="reg-campo">
+          <label for="reg-telefono">Teléfono / WhatsApp</label>
+          <input type="text" id="reg-telefono" placeholder="Ej: 987654321 (para enviar la boleta)" inputmode="tel">
+        </div>
+
+        <div class="reg-campo">
+          <label for="reg-tarifa-tipo">Tipo de tarifa</label>
+          <select id="reg-tarifa-tipo">
+            <option value="hora">Por hora</option>
+            <option value="fija">Tarifa fija</option>
+          </select>
+        </div>
+
+        <div class="reg-campo">
+          <label for="reg-tarifa-monto" id="reg-tarifa-monto-label">Monto por hora (S/) *</label>
+          <input type="number" id="reg-tarifa-monto" placeholder="Ej: 3.00" min="0" step="0.10" required>
+        </div>
+
+        <div class="reg-campo">
+          <label for="reg-estado">Estado</label>
+          <select id="reg-estado">
+            <option value="ocupado">Ocupado</option>
+            <option value="pendiente">Pendiente</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- SELECTOR VISUAL DE SITIO -->
+      <div class="reg-bloque-picker">
+        <div class="reg-picker-cabecera">
+          <label>Sitio asignado * — haz clic en un espacio libre</label>
+          <button type="button" class="reg-btn-refrescar" onclick="actualizarDisponibilidadClick()">
+            <svg viewBox="0 0 24 24" style="width:12px; height:12px; stroke:#a3a3a3; fill:none;"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+            Actualizar disponibilidad
+          </button>
+        </div>
+
+        <div class="reg-picker-leyenda">
+          <span><span class="reg-leyenda-color" style="background:#22c55e;"></span>Libre</span>
+          <span><span class="reg-leyenda-color" style="background:#ef4444;"></span>Ocupado</span>
+          <span><span class="reg-leyenda-color" style="background:#f5b400;"></span>Pendiente</span>
+          <span><span class="reg-leyenda-color" style="background:#ffca28; border:2px solid #fff;"></span>Seleccionado</span>
+        </div>
+
+        <div id="reg-picker-mapa" class="reg-picker-mapa"></div>
+
+        <p id="reg-sitio-seleccionado-texto" class="reg-sitio-texto">Ningún sitio seleccionado</p>
+      </div>
+
+      <div class="reg-campo reg-campo-full">
+        <label for="reg-observaciones">Observaciones</label>
+        <textarea id="reg-observaciones" rows="2" placeholder="Opcional: rayones, detalles, etc."></textarea>
+      </div>
+
+      <div class="reg-acciones-form">
+        <button type="submit" id="reg-btn-guardar" class="reg-btn-primario">
+          <svg viewBox="0 0 24 24" style="width:15px; height:15px; stroke:#000; fill:none;"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Registrar ingreso</span>
+        </button>
+
+        <button type="button" id="reg-btn-cancelar" class="reg-btn-secundario" onclick="cancelarEdicionRegistro()">
+          Cancelar edición
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- BUSCADOR / FILTRO -->
+  <div class="reg-buscador">
+    <input type="text" id="reg-buscar" placeholder="Buscar por placa, conductor o sitio..." oninput="renderizarTablaRegistros()">
+    <select id="reg-filtro-estado" onchange="renderizarTablaRegistros()">
+      <option value="todos">Todos los estados</option>
+      <option value="ocupado">Ocupado</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="finalizado">Finalizado</option>
+    </select>
+  </div>
+
+  <!-- TABLA DE REGISTROS -->
+  <div class="reg-tabla-wrap">
+    <table class="tabla-registros">
+      <thead>
+        <tr>
+          <th>Placa</th>
+          <th>Tipo</th>
+          <th>Conductor</th>
+          <th>Sitio</th>
+          <th>Ingreso</th>
+          <th>Salida</th>
+          <th>Tiempo</th>
+          <th>Tarifa</th>
+          <th>Total</th>
+          <th>Estado</th>
+          <th style="text-align:right;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="reg-tabla-body">
+        <!-- filas generadas por JS -->
+      </tbody>
+    </table>
+
+    <p id="reg-tabla-vacio" style="display:none; text-align:center; color:#6b7280; font-size:0.85rem; padding:26px;">
+      Cargando registros...
+    </p>
+  </div>
+
+  <!-- MODAL: SALIDA MANUAL -->
+  <div class="reg-modal" id="reg-modal-salida">
+    <div class="reg-modal-box">
+      <h3 class="reg-panel-titulo">Registrar salida</h3>
+      <div id="reg-ms-info"></div>
+
+      <div class="reg-campo" style="margin:12px 0;">
+        <label for="reg-ms-hora">Hora de salida (manual) *</label>
+        <input type="datetime-local" id="reg-ms-hora">
+      </div>
+
+      <div class="reg-grid-2">
+        <div class="reg-campo">
+          <label for="reg-ms-ttipo">Tipo de tarifa</label>
+          <select id="reg-ms-ttipo">
+            <option value="hora">Por hora</option>
+            <option value="fija">Tarifa fija</option>
+          </select>
+        </div>
+        <div class="reg-campo">
+          <label for="reg-ms-monto" id="reg-ms-lbl">Monto por hora (S/) *</label>
+          <input type="number" id="reg-ms-monto" min="0" step="0.10">
+        </div>
+      </div>
+
+      <div id="reg-ms-detalle"></div>
+
+      <div class="reg-ms-total">
+        <small>Total a cobrar</small>
+        <strong id="reg-ms-total">S/ 0.00</strong>
+      </div>
+
+      <div class="reg-acciones-form">
+        <button type="button" class="reg-btn-secundario" style="display:inline-flex;" onclick="cerrarModalSalida()">Cancelar</button>
+        <button type="button" id="reg-ms-ok" class="reg-btn-primario" onclick="confirmarSalidaModal()">Confirmar salida</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BOLETA POR WHATSAPP -->
+  <div class="reg-modal" id="reg-modal-boleta">
+    <div class="reg-modal-box">
+      <h3 class="reg-panel-titulo">Enviar boleta por WhatsApp</h3>
+
+      <div class="reg-campo">
+        <label for="reg-bol-telefono">Número de WhatsApp del cliente *</label>
+        <input type="text" id="reg-bol-telefono" placeholder="Ej: 987654321" inputmode="tel">
+      </div>
+      <p id="reg-bol-error" class="reg-ms-error" style="display:none;"></p>
+
+      <div id="reg-bol-preview" class="reg-bol-preview"></div>
+
+      <p id="reg-bol-aviso" class="reg-bol-aviso" style="display:none;"></p>
+
+      <div class="reg-bol-acciones">
+        <button type="button" id="reg-bol-btn-pdf" class="reg-btn-whatsapp" onclick="enviarBoletaPDF()">Enviar como PDF</button>
+        <button type="button" class="reg-btn-whatsapp-borde" onclick="enviarBoletaWhatsApp()">Enviar como texto</button>
+        <button type="button" class="reg-btn-secundario" style="display:inline-flex;" onclick="descargarBoletaPDF()">Descargar PDF</button>
+        <button type="button" class="reg-btn-secundario" style="display:inline-flex;" onclick="cerrarBoleta()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .vista-registro{ width:100%; }
+
+  /* ---- Encabezado ---- */
+  .reg-header{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+  .reg-titulo{ color:#f4f4f4; font-size:1.3rem; margin-bottom:4px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .reg-subtitulo{ color:#a3a3a3; font-size:0.85rem; }
+
+
+  .reg-stats{ display:flex; gap:18px; flex-wrap:wrap; }
+  .reg-stat-item{ text-align:center; min-width:52px; }
+  .reg-stat-valor{ font-size:1.3rem; font-weight:700; line-height:1.2; }
+  .reg-stat-label{ color:#a3a3a3; font-size:0.75rem; }
+
+  /* ---- Panel / formulario ---- */
+  .reg-panel{ background:#1a1a1a; border:1px solid #2a2a2a; border-radius:10px; padding:20px 22px; margin-bottom:22px; }
+  .reg-panel-titulo{ color:#f5b400; font-size:1rem; margin-bottom:16px; }
+
+  .reg-grid-campos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:14px; margin-bottom:14px; }
+  .reg-grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .reg-campo{ display:flex; flex-direction:column; }
+  .reg-campo-full{ margin-bottom:16px; }
+  .reg-campo label{ color:#a3a3a3; font-size:0.75rem; margin-bottom:6px; }
+  .reg-campo input, .reg-campo select, .reg-campo textarea{
+    width:100%; background:#050505; border:1px solid #2a2a2a; color:#f4f4f4;
+    padding:9px 10px; border-radius:6px; font-size:0.85rem; font-family:inherit; resize:vertical; color-scheme:dark;
+  }
+  .reg-campo input:focus, .reg-campo select:focus, .reg-campo textarea:focus{ outline:none; border-color:#f5b400; }
+
+  .reg-bloque-picker{ margin-bottom:16px; }
+  .reg-picker-cabecera{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+  .reg-picker-cabecera label{ color:#a3a3a3; font-size:0.75rem; }
+  .reg-btn-refrescar{
+    display:inline-flex; align-items:center; gap:6px; background:transparent; border:1px solid #2a2a2a;
+    color:#a3a3a3; padding:5px 10px; border-radius:6px; font-size:0.72rem; cursor:pointer;
+  }
+  .reg-btn-refrescar:hover{ border-color:#f5b400; color:#f5b400; }
+  .reg-picker-leyenda{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:10px; font-size:0.72rem; color:#a3a3a3; }
+  .reg-leyenda-color{ display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; }
+
+  .reg-picker-mapa{
+    background:#050505; border:1px solid #2a2a2a; border-radius:8px; padding:14px;
+    display:flex; flex-direction:column; gap:6px; overflow-x:auto;
+  }
+  .reg-sitio-texto{ margin-top:8px; font-size:0.8rem; color:#f5b400; font-weight:600; }
+
+  .reg-acciones-form{ display:flex; gap:10px; flex-wrap:wrap; }
+  .reg-btn-primario{
+    display:inline-flex; align-items:center; gap:8px; background:#f5b400; color:#000; border:none;
+    padding:10px 20px; border-radius:6px; font-size:0.85rem; font-weight:700; cursor:pointer;
+    transition:background .15s ease, opacity .15s ease;
+  }
+  .reg-btn-primario:hover{ background:#ffca28; }
+  .reg-btn-primario:disabled{ opacity:.6; cursor:not-allowed; }
+  .reg-btn-secundario{
+    display:none; align-items:center; gap:8px; background:transparent; color:#a3a3a3;
+    border:1px solid #2a2a2a; padding:10px 20px; border-radius:6px; font-size:0.85rem; font-weight:600; cursor:pointer;
+  }
+  .reg-btn-secundario:hover{ border-color:#a3a3a3; color:#f4f4f4; }
+
+  /* ---- Buscador ---- */
+  .reg-buscador{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+  .reg-buscador input{
+    flex:1; min-width:220px; background:#050505; border:1px solid #2a2a2a; color:#f4f4f4;
+    padding:9px 12px; border-radius:6px; font-size:0.85rem;
+  }
+  .reg-buscador select{
+    background:#050505; border:1px solid #2a2a2a; color:#f4f4f4;
+    padding:9px 12px; border-radius:6px; font-size:0.85rem;
+  }
+  .reg-buscador input:focus, .reg-buscador select:focus{ outline:none; border-color:#f5b400; }
+
+  /* ---- Tabla ---- */
+  .reg-tabla-wrap{ background:#1a1a1a; border:1px solid #2a2a2a; border-radius:10px; overflow-x:auto; }
+  .tabla-registros{ width:100%; border-collapse:collapse; font-size:0.82rem; min-width:1080px; }
+  .tabla-registros thead tr{ background:#0d0d0d; text-align:left; }
+  .tabla-registros th{ padding:12px 14px; color:#a3a3a3; font-weight:600; }
+
+  .reg-badge{ display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:700; letter-spacing:0.3px; }
+  .reg-badge.ocupado{ background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid #ef4444; }
+  .reg-badge.pendiente{ background:rgba(245,180,0,0.15); color:#f5b400; border:1px solid #f5b400; }
+  .reg-badge.finalizado{ background:rgba(34,197,94,0.15); color:#22c55e; border:1px solid #22c55e; }
+
+  .reg-fila-tabla td{ padding:11px 14px; border-top:1px solid #2a2a2a; color:#f4f4f4; vertical-align:middle; }
+  .reg-fila-tabla.finalizado-fila td{ color:#6b7280; }
+  .reg-total-final{ color:#f5b400; font-weight:700; }
+  .reg-total-est{ color:#a3a3a3; font-style:italic; }
+
+  .reg-accion-btn{
+    border:none; background:transparent; cursor:pointer; padding:6px 8px; border-radius:6px;
+    display:inline-flex; align-items:center; justify-content:center; transition:background 0.15s ease;
+  }
+  .reg-accion-btn svg{ width:15px; height:15px; fill:none; }
+  .reg-accion-btn:hover{ background:#2a2a2a; }
+  .reg-accion-editar svg{ stroke:#f5b400; }
+  .reg-accion-eliminar svg{ stroke:#ef4444; }
+  .reg-accion-salida svg{ stroke:#22c55e; }
+  .reg-accion-vacia{ display:inline-block; width:27px; height:27px; }
+
+  /* Botón de salida bien visible */
+  .reg-btn-salida{
+    display:inline-flex; align-items:center; gap:6px; background:#22c55e; color:#04220f; border:none;
+    padding:8px 14px; border-radius:8px; font-size:0.8rem; font-weight:800; cursor:pointer;
+    margin-right:6px; vertical-align:middle; box-shadow:0 0 0 0 rgba(34,197,94,.5);
+    transition:background .15s ease, transform .1s ease, box-shadow .15s ease;
+  }
+  .reg-btn-salida svg{ width:15px; height:15px; stroke:#04220f; fill:none; stroke-width:2.4; }
+  .reg-btn-salida:hover{ background:#4ade80; transform:translateY(-1px); box-shadow:0 4px 14px rgba(34,197,94,.4); }
+  @media (max-width: 760px){
+    .reg-fila-tabla td[data-label="Acciones"]{ flex-wrap:wrap; justify-content:flex-end; }
+    .reg-btn-salida{ flex:1 1 100%; justify-content:center; padding:11px; font-size:0.88rem; margin:0 0 6px 0; }
+  }
+
+  /* ---- Modal de salida ---- */
+  .reg-modal{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:300; align-items:center; justify-content:center; padding:16px; }
+  .reg-modal.on{ display:flex; }
+  .reg-modal-box{ background:#1a1a1a; border:1px solid #2a2a2a; border-radius:12px; padding:22px; width:100%; max-width:400px; max-height:92vh; overflow-y:auto; }
+  .reg-ms-linea{ display:flex; justify-content:space-between; gap:12px; font-size:0.83rem; padding:5px 0; color:#a3a3a3; }
+  .reg-ms-linea b{ color:#f4f4f4; font-weight:600; text-align:right; }
+  .reg-ms-error{ color:#ef4444; font-size:0.8rem; margin:10px 0; }
+  .reg-ms-total{ margin:14px 0; text-align:center; background:#0d0d0d; border-radius:10px; padding:14px; }
+  .reg-ms-total small{ color:#a3a3a3; font-size:0.75rem; }
+  .reg-ms-total strong{ display:block; font-size:2rem; color:#f5b400; margin-top:2px; }
+  .reg-modal-box .reg-acciones-form > *{ flex:1; justify-content:center; }
+
+  /* ---- Boleta WhatsApp ---- */
+  .reg-accion-boleta svg{ stroke:#25d366; }
+  .reg-bol-preview{
+    white-space:pre-wrap; background:#0d0d0d; border:1px solid #2a2a2a; border-radius:10px;
+    padding:12px 14px; margin:12px 0; font-size:0.8rem; line-height:1.5; color:#f4f4f4;
+    max-height:260px; overflow-y:auto;
+  }
+  .reg-btn-whatsapp{
+    display:inline-flex; align-items:center; gap:8px; background:#25d366; color:#06240f; border:none;
+    padding:10px 20px; border-radius:6px; font-size:0.85rem; font-weight:800; cursor:pointer;
+    transition:background .15s ease;
+  }
+  .reg-btn-whatsapp:hover{ background:#4be384; }
+  .reg-btn-whatsapp:disabled{ opacity:.6; cursor:not-allowed; }
+  .reg-btn-whatsapp-borde{
+    display:inline-flex; align-items:center; gap:8px; background:transparent; color:#25d366;
+    border:1px solid #25d366; padding:10px 20px; border-radius:6px; font-size:0.85rem; font-weight:700; cursor:pointer;
+    transition:background .15s ease;
+  }
+  .reg-btn-whatsapp-borde:hover{ background:rgba(37,211,102,.12); }
+  .reg-bol-acciones{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .reg-bol-acciones > *{ justify-content:center; width:100%; }
+  .reg-bol-aviso{
+    color:#25d366; font-size:0.8rem; margin:8px 0; background:rgba(37,211,102,.08);
+    border:1px solid rgba(37,211,102,.3); border-radius:8px; padding:8px 10px; line-height:1.4;
+  }
+  @media (max-width: 420px){ .reg-bol-acciones{ grid-template-columns:1fr; } }
+
+  /* Picker visual de sitios */
+  .picker-fila-wrap{ display:flex; align-items:center; gap:8px; }
+  .picker-fila-titulo{ min-width:46px; font-size:0.68rem; font-weight:700; color:#a3a3a3; text-align:right; flex-shrink:0; }
+  .picker-fila-celdas{ flex:1; display:grid; gap:6px; }
+  .picker-celda{
+    position:relative; padding:8px 4px; border-radius:6px; text-align:center; font-size:0.72rem;
+    font-weight:700; color:#fff; cursor:pointer; border:2px solid transparent; transition:transform 0.1s ease;
+  }
+  .picker-celda.libre{ background:#16a34a; }
+  .picker-celda.libre:hover{ transform:scale(1.06); }
+  .picker-celda.ocupado{ background:#7f1d1d; color:#fca5a5; cursor:not-allowed; }
+  .picker-celda.pendiente{ background:#78350f; color:#fde68a; cursor:not-allowed; }
+  .picker-celda.seleccionado{ outline:3px solid #ffca28; outline-offset:2px; }
+
+  /* =========================================================
+     RESPONSIVE — celular / tablet
+     ========================================================= */
+  @media (max-width: 900px){
+    .reg-stats{ gap:12px; width:100%; justify-content:space-between; }
+    .reg-stat-item{ flex:1; min-width:0; }
+  }
+  @media (max-width: 700px){
+    .reg-titulo{ font-size:1.12rem; }
+    .reg-panel{ padding:16px; }
+    .reg-acciones-form{ flex-direction:column; }
+    .reg-btn-primario, .reg-btn-secundario, .reg-btn-whatsapp{ width:100%; justify-content:center; }
+    .reg-buscador select{ width:100%; }
+    .picker-fila-wrap{ min-width:480px; }
+    .picker-fila-titulo{ min-width:34px; font-size:0.6rem; }
+    .picker-celda{ font-size:0.62rem; padding:7px 2px; }
+    .reg-stat-valor{ font-size:1.1rem; }
+  }
+  @media (max-width: 760px){
+    .tabla-registros thead{ display:none; }
+    .tabla-registros{ min-width:0; }
+    .tabla-registros, .tabla-registros tbody, .tabla-registros tr, .reg-fila-tabla td{ display:block; width:100%; }
+    .reg-fila-tabla{ border:1px solid #2a2a2a; border-radius:10px; margin:10px; padding:2px 0; background:#141414; }
+    .reg-fila-tabla td{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      border-top:none; border-bottom:1px solid #232323; padding:9px 12px;
+    }
+    .reg-fila-tabla td:last-child{ border-bottom:none; }
+    .reg-fila-tabla td::before{
+      content:attr(data-label); color:#6b7280; font-size:0.68rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:.4px; flex-shrink:0;
+    }
+  }
+  @media (max-width: 420px){
+    .reg-stats{ gap:8px; }
+    .reg-stat-label{ font-size:0.68rem; }
+  }
+</style>
+
+<script>
+(function () {
+  // ------------------------------------------------------------
+  // CRUD completo de Registro de vehículos sobre Firebase Realtime
+  // Database:
+  //   - registros/<id>       -> cada registro de ingreso/salida
+  //   - sitios/config        -> { filas, columnas } (compartido con Sitios)
+  //   - sitios/espacios/<c>  -> se actualiza aquí mismo para que el
+  //                             mapa de "Sitios" refleje el cambio solo.
+  //
+  // COBRO: la tarifa se escribe a mano en cada vehículo (por hora o
+  // fija) y la hora de salida también se escribe a mano al registrar
+  // la salida. Por hora = horas iniciadas x monto, con tolerancia.
+  //
+  // BOLETA: cada registro tiene un botón de WhatsApp que arma un
+  // ticket (ingreso) o boleta (salida) y lo abre en el chat del cliente.
+  // ------------------------------------------------------------
+
+  // Proyecto nuevo: cochera-87869
+  const CONFIG_FIREBASE = {
+    apiKey: "AIzaSyCQXVOJocqHq5J7Lr0xCcWyNvRD5_D3QNc",
+    authDomain: "cochera-87869.firebaseapp.com",
+    databaseURL: "https://cochera-87869-default-rtdb.firebaseio.com",
+    projectId: "cochera-87869",
+    storageBucket: "cochera-87869.firebasestorage.app",
+    messagingSenderId: "708639254179",
+    appId: "1:708639254179:web:89f38cca4fd7fccdd40116"
+  };
+
+  const TOLERANCIA_MIN = 10; // minutos que no cuentan como una hora extra
+
+  const elTablaVacio = document.getElementById('reg-tabla-vacio');
+
+  // Chequeo defensivo: si el SDK de Firebase no llegó a cargar, se
+  // avisa en la tabla en vez de que la vista se rompa en silencio.
+  if (!window.firebase || !window.firebase.database) {
+    if (elTablaVacio) {
+      elTablaVacio.textContent = 'No se pudo cargar la conexión con la base de datos. Revisa tu internet y recarga la página.';
+      elTablaVacio.style.display = 'block';
+    }
+    return;
+  }
+
+  if (!window.firebase.apps.length) {
+    window.firebase.initializeApp(CONFIG_FIREBASE);
+  }
+  const dbReg = window.firebase.database();
+  const refRegistros = dbReg.ref('registros');
+  const refConfigMapa = dbReg.ref('sitios/config');
+  const refEspacios = dbReg.ref('sitios/espacios');
+  const refHistorial = dbReg.ref('historial');
+
+  let registroEnEdicionId = null;
+  let salidaPend = null;                            // { id, registro, calculo } mientras el modal está abierto
+  let cacheRegistros = [];                          // se llena en tiempo real
+  let cacheConfigMapa = { filas: 3, columnas: 8 };   // valor por defecto mientras carga
+  let cacheEspacios = {};                            // estado REAL de cada sitio (misma fuente que el mapa de "Sitios")
+
+  function letraFila(indice) {
+    return String.fromCharCode(65 + indice); // A, B, C, D...
+  }
+
+  function formatearFechaHora(fechaISO) {
+    if (!fechaISO) return '—';
+    const f = new Date(fechaISO);
+    return f.toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit' }) + ' ' +
+           f.toLocaleTimeString('es-PE', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  // ---------- Helpers de tarifa y cobro ----------
+  const tieneMonto = (v) => v !== undefined && v !== null && v !== '' && isFinite(v);
+  const dinero = (n) => 'S/ ' + Number(n).toFixed(2);
+  const aLocal = (ms) => new Date(ms - new Date(ms).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+  function formatearDuracion(min) {
+    return Math.floor(min / 60) + ' h ' + String(min % 60).padStart(2, '0') + ' min';
+  }
+
+  function textoTarifa(tipo, monto) {
+    if (!tieneMonto(monto)) return '—';
+    return tipo === 'fija' ? 'Fija ' + dinero(monto) : dinero(monto) + ' /h';
+  }
+
+  function calcularCobro(ingresoISO, salidaMs, tipo, monto) {
+    const minutos = Math.max(0, Math.round((salidaMs - new Date(ingresoISO).getTime()) / 60000));
+    const horas = Math.max(1, Math.ceil((minutos - TOLERANCIA_MIN) / 60));
+    const total = tipo === 'fija' ? monto : horas * monto;
+    return { minutos, horas, total };
+  }
+
+  // Si "sitios/config" todavía no existe (BD nueva), lo crea con
+  // el valor por defecto para que el selector de sitios tenga con
+  // qué dibujarse sin necesidad de haber entrado antes a "Sitios".
+  function asegurarConfigMapa() {
+    return refConfigMapa.once('value').then((snap) => {
+      if (!snap.exists()) {
+        return refConfigMapa.set({ filas: 3, columnas: 8 });
+      }
+    });
+  }
+  asegurarConfigMapa().catch((err) => console.error('No se pudo preparar la BD:', err));
+
+  // Deja una entrada en "historial" cada vez que pasa algo importante.
+  // Si por algún motivo falla, no debe romper la acción principal
+  // (guardar, eliminar, etc.), por eso solo se registra el error.
+  function registrarHistorial(tipo, datos) {
+    const entrada = {
+      fecha: new Date().toISOString(),
+      tipo,
+      placa: datos.placa || '—',
+      conductor: datos.conductor || '—',
+      sitio: datos.sitio || '—'
+    };
+    if (tieneMonto(datos.total)) entrada.total = datos.total;
+    if (tieneMonto(datos.minutos)) entrada.minutos = datos.minutos;
+    if (tieneMonto(datos.horas)) entrada.horas = datos.horas;
+    if (tieneMonto(datos.tarifaMonto)) entrada.tarifaMonto = Number(datos.tarifaMonto);
+    if (datos.tarifaTipo) entrada.tarifaTipo = datos.tarifaTipo;
+    if (datos.horaIngreso) entrada.horaIngreso = datos.horaIngreso;
+    if (datos.horaSalida) entrada.horaSalida = datos.horaSalida;
+    refHistorial.push(entrada).catch((err) => console.error('No se pudo guardar en el historial:', err));
+  }
+
+  // ------------------------------------------------------------
+  // Reserva atómica de un sitio: usa una transacción de Firebase
+  // para que, si dos personas seleccionan el mismo espacio libre
+  // casi al mismo tiempo y ambas le dan "Guardar", solo una de las
+  // dos se quede con el sitio.
+  // ------------------------------------------------------------
+  function reservarSitioAtomico(sitio, estado) {
+    return refEspacios.child(sitio).transaction((actual) => {
+      if (actual && actual.estado && actual.estado !== 'libre') {
+        return; // aborta la transacción: alguien más ya lo tomó
+      }
+      return Object.assign({}, actual || {}, { estado });
+    });
+  }
+
+  // ---------- SELECTOR VISUAL DE SITIO ----------
+  // Usa "sitios/espacios" (cacheEspacios) como fuente de verdad del
+  // estado real de cada sitio —la misma que usa el mapa de "Sitios"—.
+  window.renderizarPickerSitios = function (idExcluido = null) {
+    const { filas, columnas } = cacheConfigMapa;
+    const sitioActual = document.getElementById('reg-sitio').value;
+    const contenedor = document.getElementById('reg-picker-mapa');
+    contenedor.innerHTML = '';
+
+    // Si se está editando un registro, su propio sitio actual debe
+    // poder re-seleccionarse aunque la BD lo marque como "ocupado".
+    const regEnEdicion = idExcluido ? cacheRegistros.find(r => r.id === idExcluido) : null;
+    const sitioPropio = regEnEdicion ? (regEnEdicion.sitio || '').toUpperCase() : null;
+
+    for (let f = 0; f < filas; f++) {
+      const filaWrap = document.createElement('div');
+      filaWrap.className = 'picker-fila-wrap';
+
+      const filaTitulo = document.createElement('div');
+      filaTitulo.className = 'picker-fila-titulo';
+      filaTitulo.textContent = `Fila ${letraFila(f)}`;
+      filaWrap.appendChild(filaTitulo);
+
+      const filaCeldas = document.createElement('div');
+      filaCeldas.className = 'picker-fila-celdas';
+      filaCeldas.style.gridTemplateColumns = `repeat(${columnas}, 1fr)`;
+
+      for (let c = 1; c <= columnas; c++) {
+        const codigo = `${letraFila(f)}${c}`;
+        const esSitioPropio = codigo.toUpperCase() === sitioPropio;
+
+        const datoEspacio = cacheEspacios[codigo];
+        let estado = (datoEspacio && ['ocupado', 'pendiente'].includes(datoEspacio.estado)) ? datoEspacio.estado : 'libre';
+        if (esSitioPropio) estado = 'libre';
+
+        const ocupante = !esSitioPropio ? cacheRegistros.find(r =>
+          r.id !== idExcluido &&
+          r.estado !== 'finalizado' &&
+          r.sitio && r.sitio.toUpperCase() === codigo.toUpperCase()
+        ) : null;
+
+        const celda = document.createElement('div');
+        celda.className = `picker-celda ${estado}`;
+        celda.textContent = codigo;
+
+        if (codigo.toUpperCase() === (sitioActual || '').toUpperCase()) {
+          celda.classList.add('seleccionado');
+        }
+
+        if (ocupante) {
+          celda.title = `${codigo} · ${estado === 'ocupado' ? 'Ocupado' : 'Pendiente'} por placa ${ocupante.placa}`;
+        } else if (estado !== 'libre') {
+          celda.title = `${codigo} · ${estado.charAt(0).toUpperCase() + estado.slice(1)}`;
+        } else {
+          celda.title = `${codigo} · Libre`;
+        }
+
+        celda.addEventListener('click', () => seleccionarSitioPicker(codigo, estado));
+        filaCeldas.appendChild(celda);
+      }
+
+      filaWrap.appendChild(filaCeldas);
+      contenedor.appendChild(filaWrap);
+    }
+  };
+
+  function seleccionarSitioPicker(codigo, estado) {
+    if (estado === 'ocupado' || estado === 'pendiente') {
+      alert(`El sitio ${codigo} ya está ${estado}. Elige otro espacio libre.`);
+      return;
+    }
+    document.getElementById('reg-sitio').value = codigo;
+    document.getElementById('reg-sitio-seleccionado-texto').textContent = `Sitio seleccionado: ${codigo}`;
+    renderizarPickerSitios(registroEnEdicionId);
+  }
+
+  window.actualizarDisponibilidadClick = function () {
+    renderizarPickerSitios(registroEnEdicionId);
+  };
+
+  // Cambia la etiqueta del monto según el tipo de tarifa elegido
+  document.getElementById('reg-tarifa-tipo').addEventListener('change', function () {
+    document.getElementById('reg-tarifa-monto-label').textContent =
+      this.value === 'fija' ? 'Monto total (S/) *' : 'Monto por hora (S/) *';
+  });
+
+  // ---------- CREATE / UPDATE (mismo formulario) ----------
+  document.getElementById('reg-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const placa = document.getElementById('reg-placa').value.trim().toUpperCase();
+    const tipo = document.getElementById('reg-tipo').value;
+    const conductor = document.getElementById('reg-conductor').value.trim();
+    const telefono = document.getElementById('reg-telefono').value.trim();
+    const sitio = document.getElementById('reg-sitio').value.trim().toUpperCase();
+    const estado = document.getElementById('reg-estado').value;
+    const observaciones = document.getElementById('reg-observaciones').value.trim();
+    const tarifaTipo = document.getElementById('reg-tarifa-tipo').value;
+    const tarifaMonto = parseFloat(document.getElementById('reg-tarifa-monto').value);
+
+    if (!placa || !conductor) return;
+    if (!isFinite(tarifaMonto) || tarifaMonto < 0) {
+      alert('Escribe el monto de la tarifa de este vehículo.');
+      return;
+    }
+    if (!sitio) {
+      alert('Selecciona un sitio en el mapa antes de guardar.');
+      return;
+    }
+
+    // Aviso suave si la placa ya tiene un registro activo en otro sitio,
+    // para evitar duplicados por error al crear un ingreso nuevo.
+    if (!registroEnEdicionId) {
+      const yaActiva = cacheRegistros.find(r => r.estado !== 'finalizado' && (r.placa || '').toUpperCase() === placa);
+      if (yaActiva) {
+        const continuar = confirm(`La placa ${placa} ya tiene un registro activo en el sitio ${yaActiva.sitio}. ¿Registrar de todas formas otro ingreso?`);
+        if (!continuar) return;
+      }
+    }
+
+    const btnGuardar = document.getElementById('reg-btn-guardar');
+    btnGuardar.disabled = true;
+
+    try {
+      if (registroEnEdicionId) {
+        const anterior = cacheRegistros.find(r => r.id === registroEnEdicionId);
+        const sitioAnterior = anterior ? anterior.sitio : null;
+        const cambioDeSitio = !!(sitioAnterior && sitioAnterior !== sitio);
+
+        if (cambioDeSitio) {
+          const resultado = await reservarSitioAtomico(sitio, estado);
+          if (!resultado.committed) {
+            alert(`El sitio ${sitio} ya fue tomado por otro usuario justo ahora. Elige otro espacio.`);
+            renderizarPickerSitios(registroEnEdicionId);
+            return;
+          }
+        } else {
+          await refEspacios.child(sitio).update({ estado });
+        }
+
+        try {
+          await refRegistros.child(registroEnEdicionId).update({ placa, tipo, conductor, telefono, sitio, estado, observaciones, tarifaTipo, tarifaMonto });
+        } catch (err) {
+          if (cambioDeSitio) await refEspacios.child(sitio).update({ estado: 'libre' }).catch(() => {});
+          throw err;
+        }
+
+        registrarHistorial('edicion', { placa, conductor, sitio });
+        if (cambioDeSitio && sitioAnterior) {
+          await refEspacios.child(sitioAnterior).update({ estado: 'libre' });
+        }
+        cancelarEdicionRegistro();
+
+      } else {
+        const resultado = await reservarSitioAtomico(sitio, estado);
+        if (!resultado.committed) {
+          alert(`El sitio ${sitio} ya fue tomado por otro usuario justo ahora. Elige otro espacio.`);
+          renderizarPickerSitios(null);
+          return;
+        }
+
+        const nuevoId = refRegistros.push().key;
+        const nuevoRegistro = {
+          placa, tipo, conductor, telefono, sitio, estado, observaciones,
+          tarifaTipo, tarifaMonto,
+          horaIngreso: new Date().toISOString(),
+          horaSalida: null
+        };
+
+        try {
+          await refRegistros.child(nuevoId).set(nuevoRegistro);
+        } catch (err) {
+          await refEspacios.child(sitio).update({ estado: 'libre' }).catch(() => {});
+          throw err;
+        }
+
+        registrarHistorial('ingreso', { placa, conductor, sitio });
+        cancelarEdicionRegistro();
+      }
+    } catch (err) {
+      console.error('No se pudo guardar el registro:', err);
+      alert('No se pudo guardar el registro. Revisa tu conexión e intenta de nuevo.');
+    } finally {
+      btnGuardar.disabled = false;
+    }
+  });
+
+  // ---------- UPDATE (cargar datos al formulario) ----------
+  window.editarRegistro = function (id) {
+    const registro = cacheRegistros.find(r => r.id === id);
+    if (!registro) return;
+
+    // Los registros ya finalizados (el auto ya salió) son historial:
+    // no se editan para no reactivarlos por error como "ocupados".
+    if (registro.estado === 'finalizado') {
+      alert('Este registro ya está finalizado (el vehículo ya salió) y no se puede editar. Si necesitas corregirlo, elimínalo y crea uno nuevo.');
+      return;
+    }
+
+    registroEnEdicionId = id;
+
+    document.getElementById('reg-id').value = registro.id;
+    document.getElementById('reg-placa').value = registro.placa;
+    document.getElementById('reg-tipo').value = registro.tipo;
+    document.getElementById('reg-conductor').value = registro.conductor;
+    document.getElementById('reg-telefono').value = registro.telefono || '';
+    document.getElementById('reg-sitio').value = registro.sitio;
+    document.getElementById('reg-estado').value = registro.estado;
+    document.getElementById('reg-observaciones').value = registro.observaciones || '';
+    document.getElementById('reg-tarifa-tipo').value = registro.tarifaTipo === 'fija' ? 'fija' : 'hora';
+    document.getElementById('reg-tarifa-tipo').dispatchEvent(new Event('change'));
+    document.getElementById('reg-tarifa-monto').value = tieneMonto(registro.tarifaMonto) ? registro.tarifaMonto : '';
+
+    document.getElementById('reg-form-titulo').textContent = `Editando registro · ${registro.placa}`;
+    document.querySelector('#reg-btn-guardar span').textContent = 'Guardar cambios';
+    document.getElementById('reg-btn-cancelar').style.display = 'inline-flex';
+    document.getElementById('reg-sitio-seleccionado-texto').textContent = `Sitio seleccionado: ${registro.sitio}`;
+
+    renderizarPickerSitios(id);
+    document.getElementById('reg-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  window.cancelarEdicionRegistro = function () {
+    registroEnEdicionId = null;
+    document.getElementById('reg-form').reset();
+    document.getElementById('reg-id').value = '';
+    document.getElementById('reg-sitio').value = '';
+    document.getElementById('reg-tarifa-monto-label').textContent = 'Monto por hora (S/) *';
+    document.getElementById('reg-form-titulo').textContent = 'Nuevo registro de ingreso';
+    document.querySelector('#reg-btn-guardar span').textContent = 'Registrar ingreso';
+    document.getElementById('reg-btn-cancelar').style.display = 'none';
+    document.getElementById('reg-sitio-seleccionado-texto').textContent = 'Ningún sitio seleccionado';
+    renderizarPickerSitios(null);
+  };
+
+  // ---------- Salida manual: modal con hora, tarifa y total ----------
+  function recalcularModalSalida() {
+    if (!salidaPend) return;
+    const r = salidaPend.registro;
+    const ms = new Date(document.getElementById('reg-ms-hora').value).getTime();
+    const tipo = document.getElementById('reg-ms-ttipo').value;
+    const monto = parseFloat(document.getElementById('reg-ms-monto').value);
+    const detalle = document.getElementById('reg-ms-detalle');
+    const total = document.getElementById('reg-ms-total');
+    const btnOk = document.getElementById('reg-ms-ok');
+
+    document.getElementById('reg-ms-lbl').textContent = tipo === 'fija' ? 'Monto total (S/) *' : 'Monto por hora (S/) *';
+    salidaPend.calculo = null;
+
+    let error = '';
+    if (!isFinite(ms) || ms < new Date(r.horaIngreso).getTime()) {
+      error = 'La salida debe ser posterior al ingreso (' + formatearFechaHora(r.horaIngreso) + ').';
+    } else if (!isFinite(monto) || monto < 0) {
+      error = 'Escribe el monto de la tarifa.';
+    }
+
+    if (error) {
+      detalle.innerHTML = '<p class="reg-ms-error">' + error + '</p>';
+      total.textContent = '—';
+      btnOk.disabled = true;
+      return;
+    }
+
+    const c = calcularCobro(r.horaIngreso, ms, tipo, monto);
+    salidaPend.calculo = { ms, tipo, monto, minutos: c.minutos, horas: c.horas, total: c.total };
+
+    detalle.innerHTML =
+      '<div class="reg-ms-linea">Hora de salida<b>' + formatearFechaHora(new Date(ms).toISOString()) + '</b></div>' +
+      '<div class="reg-ms-linea">Tiempo estacionado<b>' + formatearDuracion(c.minutos) + '</b></div>' +
+      (tipo === 'fija'
+        ? '<div class="reg-ms-linea">Cobro<b>Tarifa fija ' + dinero(monto) + '</b></div>'
+        : '<div class="reg-ms-linea">Horas cobradas<b>' + c.horas + ' × ' + dinero(monto) + '</b></div>');
+    total.textContent = dinero(c.total);
+    btnOk.disabled = false;
+  }
+
+  window.marcarSalida = function (id) {
+    const registro = cacheRegistros.find(r => r.id === id);
+    if (!registro) return;
+
+    salidaPend = { id, registro, calculo: null };
+    const ingresoMs = new Date(registro.horaIngreso).getTime();
+
+    document.getElementById('reg-ms-info').innerHTML =
+      '<div class="reg-ms-linea">Placa<b>' + registro.placa + ' · ' + registro.tipo + '</b></div>' +
+      '<div class="reg-ms-linea">Conductor<b>' + registro.conductor + '</b></div>' +
+      '<div class="reg-ms-linea">Sitio<b>' + registro.sitio + '</b></div>' +
+      '<div class="reg-ms-linea">Ingreso<b>' + formatearFechaHora(registro.horaIngreso) + '</b></div>';
+
+    const inputHora = document.getElementById('reg-ms-hora');
+    inputHora.min = aLocal(ingresoMs);
+    inputHora.value = aLocal(Math.max(Date.now(), ingresoMs));
+
+    document.getElementById('reg-ms-ttipo').value = registro.tarifaTipo === 'fija' ? 'fija' : 'hora';
+    document.getElementById('reg-ms-monto').value = tieneMonto(registro.tarifaMonto) ? registro.tarifaMonto : '';
+
+    recalcularModalSalida();
+    document.getElementById('reg-modal-salida').classList.add('on');
+  };
+
+  window.cerrarModalSalida = function () {
+    salidaPend = null;
+    document.getElementById('reg-modal-salida').classList.remove('on');
+  };
+
+  window.confirmarSalidaModal = function () {
+    if (!salidaPend || !salidaPend.calculo) return;
+    const { id, registro, calculo: c } = salidaPend;
+    const btnOk = document.getElementById('reg-ms-ok');
+    btnOk.disabled = true;
+
+    refRegistros.child(id).update({
+      estado: 'finalizado',
+      horaSalida: new Date(c.ms).toISOString(),
+      minutos: c.minutos,
+      horas: c.horas,
+      tarifaTipo: c.tipo,
+      tarifaMonto: c.monto,
+      total: c.total
+    })
+      .then(() => {
+        registrarHistorial('salida', Object.assign({}, registro, {
+          total: c.total, minutos: c.minutos, horas: c.horas,
+          tarifaTipo: c.tipo, tarifaMonto: c.monto,
+          horaSalida: new Date(c.ms).toISOString()
+        }));
+        return refEspacios.child(registro.sitio).update({ estado: 'libre' });
+      })
+      .then(() => {
+        if (registroEnEdicionId === id) cancelarEdicionRegistro();
+        cerrarModalSalida();
+      })
+      .catch((err) => {
+        console.error('No se pudo registrar la salida:', err);
+        alert('No se pudo registrar la salida. Intenta de nuevo.');
+      })
+      .finally(() => { btnOk.disabled = false; });
+  };
+
+  ['reg-ms-hora', 'reg-ms-ttipo', 'reg-ms-monto'].forEach((idCampo) => {
+    const el = document.getElementById(idCampo);
+    el.addEventListener('input', recalcularModalSalida);
+    el.addEventListener('change', recalcularModalSalida);
+  });
+  document.getElementById('reg-modal-salida').addEventListener('click', (e) => {
+    if (e.target.id === 'reg-modal-salida') cerrarModalSalida();
+  });
+
+  // ---------- BOLETA / TICKET POR WHATSAPP ----------
+  const NOMBRE_NEGOCIO = 'El Refugio';   // <- cambia el nombre si quieres
+  const CODIGO_PAIS = '51';              // Perú
+  let boletaPend = null;                 // { id, registro }
+
+  function normalizarTelefono(t) {
+    let n = String(t || '').replace(/\D/g, '');
+    if (n.startsWith('00')) n = n.slice(2);
+    if (n.length === 9) n = CODIGO_PAIS + n;   // 987654321 -> 51987654321
+    return n;
+  }
+
+  function armarMensajeBoleta(r) {
+    const fin = r.estado === 'finalizado';
+    const l = [];
+    l.push('🅿️ *' + NOMBRE_NEGOCIO.toUpperCase() + '*');
+    l.push(fin ? '*BOLETA DE SALIDA*' : '*TICKET DE INGRESO*');
+    l.push('------------------------');
+    l.push('Placa: *' + r.placa + '*');
+    l.push('Vehículo: ' + r.tipo);
+    l.push('Conductor: ' + r.conductor);
+    l.push('Sitio: ' + r.sitio);
+    l.push('Ingreso: ' + formatearFechaHora(r.horaIngreso));
+    l.push('Tarifa: ' + textoTarifa(r.tarifaTipo, r.tarifaMonto));
+    if (fin) {
+      l.push('Salida: ' + formatearFechaHora(r.horaSalida));
+      if (tieneMonto(r.minutos)) l.push('Tiempo: ' + formatearDuracion(r.minutos));
+      if (tieneMonto(r.total)) {
+        l.push('------------------------');
+        l.push('*TOTAL PAGADO: ' + dinero(r.total) + '*');
+      }
+      l.push('');
+      l.push('¡Gracias por su preferencia! 🚗');
+    } else {
+      l.push('------------------------');
+      l.push('Conserve este ticket. Se calculará el cobro al momento de la salida.');
+    }
+    return l.join('\n');
+  }
+
+  window.abrirBoleta = function (id) {
+    const registro = cacheRegistros.find(r => r.id === id);
+    if (!registro) return;
+    boletaPend = { id, registro };
+    document.getElementById('reg-bol-telefono').value = registro.telefono || '';
+    document.getElementById('reg-bol-error').style.display = 'none';
+    document.getElementById('reg-bol-aviso').style.display = 'none';
+    document.getElementById('reg-bol-preview').textContent = armarMensajeBoleta(registro);
+    cargarJsPDF().catch(() => {}); // precarga para que el PDF salga rápido
+    cargarStorageSDK().catch(() => {});
+    document.getElementById('reg-modal-boleta').classList.add('on');
+  };
+
+  window.cerrarBoleta = function () {
+    boletaPend = null;
+    document.getElementById('reg-modal-boleta').classList.remove('on');
+  };
+
+  // Valida el número del modal; si es válido lo guarda en el registro
+  // (cuando cambió) y devuelve el número listo para wa.me. Si no, null.
+  function validarNumeroBoleta() {
+    const { id, registro } = boletaPend;
+    const campo = document.getElementById('reg-bol-telefono').value;
+    const numero = normalizarTelefono(campo);
+    const err = document.getElementById('reg-bol-error');
+
+    if (numero.length < 10 || numero.length > 15) {
+      err.textContent = 'Escribe un número de WhatsApp válido (9 dígitos en Perú).';
+      err.style.display = 'block';
+      return null;
+    }
+    err.style.display = 'none';
+
+    if (campo.trim() !== (registro.telefono || '')) {
+      refRegistros.child(id).update({ telefono: campo.trim() })
+        .catch((e) => console.error('No se pudo guardar el teléfono:', e));
+    }
+    return numero;
+  }
+
+  function avisoBoleta(msg) {
+    const el = document.getElementById('reg-bol-aviso');
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+  }
+
+  // ---- Enviar como TEXTO ----
+  window.enviarBoletaWhatsApp = function () {
+    if (!boletaPend) return;
+    const numero = validarNumeroBoleta();
+    if (!numero) return;
+    const url = 'https://wa.me/' + numero + '?text=' + encodeURIComponent(armarMensajeBoleta(boletaPend.registro));
+    window.open(url, '_blank');
+  };
+
+  // ---- PDF: carga de la librería jsPDF solo cuando hace falta ----
+  function cargarJsPDF() {
+    if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+    if (window._jspdfPromesa) return window._jspdfPromesa;
+    window._jspdfPromesa = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = () => resolve(window.jspdf.jsPDF);
+      s.onerror = () => { window._jspdfPromesa = null; reject(new Error('No se pudo cargar jsPDF')); };
+      document.head.appendChild(s);
+    });
+    return window._jspdfPromesa;
+  }
+
+  // Dibuja la boleta/ticket en un PDF tipo recibo (80 mm de ancho).
+  async function generarPdfBoleta(r) {
+    const jsPDF = await cargarJsPDF();
+    const fin = r.estado === 'finalizado';
+    const W = 80;
+    const M = 6; // margen lateral
+
+    const filas = [
+      ['Placa', r.placa],
+      ['Vehiculo', r.tipo],
+      ['Conductor', r.conductor],
+      ['Sitio', r.sitio],
+      ['Ingreso', formatearFechaHora(r.horaIngreso)],
+      ['Tarifa', textoTarifa(r.tarifaTipo, r.tarifaMonto)]
+    ];
+    if (fin) {
+      filas.push(['Salida', formatearFechaHora(r.horaSalida)]);
+      if (tieneMonto(r.minutos)) filas.push(['Tiempo', formatearDuracion(Number(r.minutos))]);
+      if (tieneMonto(r.horas) && r.tarifaTipo !== 'fija') filas.push(['Horas cobradas', String(r.horas)]);
+    }
+
+    const yFilas = 46, paso = 7;
+    const yCaja = yFilas + filas.length * paso + 2;
+    const hCaja = 17;
+    const yPie = yCaja + hCaja + 9;
+    const H = yPie + 14;
+
+    const doc = new jsPDF({ unit: 'mm', format: [W, H] });
+
+    // Cabecera oscura con franja amarilla
+    doc.setFillColor(10, 10, 11);
+    doc.rect(0, 0, W, 30, 'F');
+    doc.setFillColor(245, 180, 0);
+    doc.rect(0, 30, W, 1.6, 'F');
+
+    doc.setTextColor(245, 180, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text(NOMBRE_NEGOCIO.toUpperCase(), W / 2, 12, { align: 'center' });
+
+    doc.setTextColor(170, 170, 175);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text('Control de cochera', W / 2, 17, { align: 'center' });
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(fin ? 'BOLETA DE SALIDA' : 'TICKET DE INGRESO', W / 2, 25, { align: 'center' });
+
+    // N° de comprobante y fecha de emisión
+    doc.setTextColor(110, 110, 115);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text('N° ' + String(r.id || '').slice(-6).toUpperCase(), M, 38);
+    doc.text('Emitido: ' + formatearFechaHora(new Date().toISOString()), W - M, 38, { align: 'right' });
+
+    doc.setDrawColor(190, 190, 195);
+    doc.setLineDashPattern([1, 1], 0);
+    doc.line(M, 41, W - M, 41);
+    doc.setLineDashPattern([], 0);
+
+    // Filas de datos
+    filas.forEach((f, i) => {
+      const y = yFilas + i * paso;
+      if (i % 2 === 0) {
+        doc.setFillColor(246, 246, 247);
+        doc.rect(M - 2, y - 4.6, W - 2 * M + 4, paso - 0.4, 'F');
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(110, 110, 115);
+      doc.text(f[0], M, y);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(20, 20, 22);
+      const valor = doc.splitTextToSize(String(f[1] ?? '-'), 42)[0];
+      doc.text(valor, W - M, y, { align: 'right' });
+    });
+
+    // Caja de total (salida) o nota (ingreso)
+    if (fin && tieneMonto(r.total)) {
+      doc.setFillColor(245, 180, 0);
+      doc.roundedRect(M - 2, yCaja, W - 2 * M + 4, hCaja, 2, 2, 'F');
+      doc.setTextColor(40, 30, 0);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.text('TOTAL PAGADO', W / 2, yCaja + 5.5, { align: 'center' });
+      doc.setFontSize(17);
+      doc.text(dinero(r.total), W / 2, yCaja + 13.5, { align: 'center' });
+    } else {
+      doc.setFillColor(246, 246, 247);
+      doc.roundedRect(M - 2, yCaja, W - 2 * M + 4, hCaja, 2, 2, 'F');
+      doc.setTextColor(90, 90, 95);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      const nota = doc.splitTextToSize('Conserve este ticket. El cobro se calcula al momento de la salida.', W - 2 * M - 4);
+      doc.text(nota, W / 2, yCaja + 7, { align: 'center' });
+    }
+
+    // Pie
+    doc.setDrawColor(190, 190, 195);
+    doc.setLineDashPattern([1, 1], 0);
+    doc.line(M, yPie - 3, W - M, yPie - 3);
+    doc.setLineDashPattern([], 0);
+    doc.setTextColor(20, 20, 22);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('Gracias por su preferencia', W / 2, yPie + 3, { align: 'center' });
+    doc.setTextColor(120, 120, 125);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text(fin ? 'Comprobante de pago' : 'Comprobante de ingreso', W / 2, yPie + 8, { align: 'center' });
+
+    const nombre = 'Boleta-' + String(r.placa || 'vehiculo').replace(/[^A-Za-z0-9-]/g, '') + '.pdf';
+    return { blob: doc.output('blob'), nombre };
+  }
+
+  function descargarArchivo(blob, nombre) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  // ---- Solo descargar el PDF ----
+  window.descargarBoletaPDF = async function () {
+    if (!boletaPend) return;
+    try {
+      avisoBoleta('Generando PDF...');
+      const { blob, nombre } = await generarPdfBoleta(boletaPend.registro);
+      descargarArchivo(blob, nombre);
+      avisoBoleta('PDF descargado: ' + nombre);
+    } catch (e) {
+      console.error(e);
+      avisoBoleta('No se pudo generar el PDF. Revisa tu internet e intenta de nuevo.');
+    }
+  };
+
+  // ---- Enviar como PDF ----
+  // WhatsApp no deja adjuntar archivos desde un enlace wa.me, asi que el PDF
+  // se sube a Firebase Storage y el chat se abre con el mensaje + el enlace
+  // de descarga del PDF. Si la subida falla, se descarga el PDF para
+  // adjuntarlo a mano (plan B).
+  const TIEMPO_SUBIDA_MS = 25000;
+
+  function cargarStorageSDK() {
+    if (window.firebase.storage) return Promise.resolve();
+    if (window._storageSdkPromesa) return window._storageSdkPromesa;
+    window._storageSdkPromesa = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js';
+      s.onload = () => resolve();
+      s.onerror = () => { window._storageSdkPromesa = null; reject(new Error('No se pudo cargar Firebase Storage')); };
+      document.head.appendChild(s);
+    });
+    return window._storageSdkPromesa;
+  }
+
+  async function subirPdfYObtenerLink(blob, registro) {
+    await cargarStorageSDK();
+    const ruta = 'boletas/' + String(registro.id) + '-' + Date.now() + '.pdf';
+    const ref = window.firebase.storage().ref(ruta);
+    const subida = (async () => {
+      await ref.put(blob, { contentType: 'application/pdf' });
+      return ref.getDownloadURL();
+    })();
+    const limite = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), TIEMPO_SUBIDA_MS));
+    return Promise.race([subida, limite]);
+  }
+
+  window.enviarBoletaPDF = async function () {
+    if (!boletaPend) return;
+    const numero = validarNumeroBoleta();
+    if (!numero) return;
+    const registro = boletaPend.registro;
+    const btn = document.getElementById('reg-bol-btn-pdf');
+    btn.disabled = true;
+    avisoBoleta('Generando el PDF y subiéndolo... espera unos segundos.');
+
+    // Se abre la pestaña ahora, con el clic, para que el navegador no la bloquee.
+    const ventana = window.open('about:blank', '_blank');
+    const irA = (url) => {
+      if (ventana && !ventana.closed) ventana.location.href = url;
+      else window.open(url, '_blank');
+    };
+
+    let pdf;
+    try {
+      pdf = await generarPdfBoleta(registro);
+    } catch (e) {
+      console.error(e);
+      if (ventana && !ventana.closed) ventana.close();
+      avisoBoleta('No se pudo generar el PDF. Revisa tu internet e intenta de nuevo.');
+      btn.disabled = false;
+      return;
+    }
+
+    try {
+      const link = await subirPdfYObtenerLink(pdf.blob, registro);
+      const texto = armarMensajeBoleta(registro) + '\n\n📄 Descarga tu boleta en PDF:\n' + link;
+      irA('https://wa.me/' + numero + '?text=' + encodeURIComponent(texto));
+      avisoBoleta('Listo. Se abrió el chat con el mensaje y el enlace del PDF. Solo pulsa Enviar en WhatsApp.');
+    } catch (e) {
+      console.error('No se pudo subir el PDF:', e);
+      // Plan B: se descarga el PDF y se abre el chat para adjuntarlo a mano.
+      descargarArchivo(pdf.blob, pdf.nombre);
+      const msg = 'Hola ' + registro.conductor + ', le enviamos su comprobante de ' + NOMBRE_NEGOCIO + '.';
+      irA('https://wa.me/' + numero + '?text=' + encodeURIComponent(msg));
+      const causa = (e && e.code === 'storage/unauthorized')
+        ? 'faltan los permisos (reglas) de Firebase Storage'
+        : 'Firebase Storage no está activado o no respondió';
+      avisoBoleta('No se pudo subir el PDF (' + causa + '). Se descargó el archivo: adjúntalo en el chat con el clip > Documento.');
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  document.getElementById('reg-modal-boleta').addEventListener('click', (e) => {
+    if (e.target.id === 'reg-modal-boleta') cerrarBoleta();
+  });
+
+  // ---------- DELETE ----------
+  window.eliminarRegistro = function (id) {
+    const registro = cacheRegistros.find(r => r.id === id);
+    if (!registro) return;
+    if (!confirm(`¿Eliminar definitivamente el registro de la placa ${registro.placa}? Esta acción no se puede deshacer.`)) return;
+
+    const tareas = [refRegistros.child(id).remove()];
+    if (registro.estado !== 'finalizado') {
+      tareas.push(refEspacios.child(registro.sitio).update({ estado: 'libre' }));
+    }
+
+    Promise.all(tareas)
+      .then(() => {
+        registrarHistorial('eliminacion', registro);
+        if (registroEnEdicionId === id) cancelarEdicionRegistro();
+      })
+      .catch((err) => {
+        console.error('No se pudo eliminar el registro:', err);
+        alert('No se pudo eliminar el registro. Intenta de nuevo.');
+      });
+  };
+
+  // ---------- READ (tabla + filtros + stats) ----------
+  window.renderizarTablaRegistros = function () {
+    const texto = document.getElementById('reg-buscar').value.trim().toLowerCase();
+    const filtroEstado = document.getElementById('reg-filtro-estado').value;
+
+    const filtrados = cacheRegistros.filter(r => {
+      const coincideTexto = !texto ||
+        r.placa.toLowerCase().includes(texto) ||
+        r.conductor.toLowerCase().includes(texto) ||
+        r.sitio.toLowerCase().includes(texto);
+      const coincideEstado = filtroEstado === 'todos' || r.estado === filtroEstado;
+      return coincideTexto && coincideEstado;
+    });
+
+    const cuerpo = document.getElementById('reg-tabla-body');
+    const vacio = document.getElementById('reg-tabla-vacio');
+    cuerpo.innerHTML = '';
+
+    if (filtrados.length === 0) {
+      vacio.textContent = cacheRegistros.length === 0
+        ? 'Todavía no hay registros. Crea el primero con el formulario de arriba.'
+        : 'No hay registros que coincidan con la búsqueda.';
+      vacio.style.display = 'block';
+    } else {
+      vacio.style.display = 'none';
+      const ahora = Date.now();
+
+      filtrados.forEach(r => {
+        const fila = document.createElement('tr');
+        fila.className = `reg-fila-tabla ${r.estado === 'finalizado' ? 'finalizado-fila' : ''}`;
+
+        const esFinalizado = r.estado === 'finalizado';
+
+        const botonSalida = !esFinalizado
+          ? `<button class="reg-btn-salida" title="Registrar salida" onclick="marcarSalida('${r.id}')">
+               <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+               Registrar salida
+             </button>`
+          : '';
+
+        const botonEditar = !esFinalizado
+          ? `<button class="reg-accion-btn reg-accion-editar" title="Editar" onclick="editarRegistro('${r.id}')">
+               <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+             </button>`
+          : `<span class="reg-accion-vacia" title="Registro finalizado: no editable"></span>`;
+
+        // Tiempo y total: exactos si ya salió; estimados (al momento) si sigue dentro.
+        let tiempoTxt = '—';
+        let totalHtml = '—';
+        if (esFinalizado) {
+          if (tieneMonto(r.minutos)) tiempoTxt = formatearDuracion(r.minutos);
+          if (tieneMonto(r.total)) totalHtml = `<span class="reg-total-final">${dinero(r.total)}</span>`;
+        } else {
+          const minutosAhora = Math.max(0, Math.round((ahora - new Date(r.horaIngreso).getTime()) / 60000));
+          tiempoTxt = formatearDuracion(minutosAhora);
+          if (tieneMonto(r.tarifaMonto)) {
+            const est = calcularCobro(r.horaIngreso, ahora, r.tarifaTipo === 'fija' ? 'fija' : 'hora', Number(r.tarifaMonto));
+            totalHtml = `<span class="reg-total-est">≈ ${dinero(est.total)}</span>`;
+          }
+        }
+
+        fila.innerHTML = `
+          <td data-label="Placa" style="font-weight:700;">${r.placa}</td>
+          <td data-label="Tipo">${r.tipo}</td>
+          <td data-label="Conductor">${r.conductor}</td>
+          <td data-label="Sitio">${r.sitio}</td>
+          <td data-label="Ingreso">${formatearFechaHora(r.horaIngreso)}</td>
+          <td data-label="Salida">${formatearFechaHora(r.horaSalida)}</td>
+          <td data-label="Tiempo">${tiempoTxt}</td>
+          <td data-label="Tarifa">${textoTarifa(r.tarifaTipo, r.tarifaMonto)}</td>
+          <td data-label="Total">${totalHtml}</td>
+          <td data-label="Estado"><span class="reg-badge ${r.estado}">${r.estado.charAt(0).toUpperCase() + r.estado.slice(1)}</span></td>
+          <td data-label="Acciones" style="text-align:right; white-space:nowrap;">
+            <button class="reg-accion-btn reg-accion-boleta" title="Enviar boleta por WhatsApp" onclick="abrirBoleta('${r.id}')">
+              <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5Z"/></svg>
+            </button>
+            ${botonSalida}
+            ${botonEditar}
+            <button class="reg-accion-btn reg-accion-eliminar" title="Eliminar" onclick="eliminarRegistro('${r.id}')">
+              <svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </td>`;
+        cuerpo.appendChild(fila);
+      });
+    }
+
+    actualizarStatsRegistros(cacheRegistros);
+  };
+
+  function actualizarStatsRegistros(registros) {
+    const ocupados = registros.filter(r => r.estado === 'ocupado').length;
+    const pendientes = registros.filter(r => r.estado === 'pendiente').length;
+    const finalizados = registros.filter(r => r.estado === 'finalizado').length;
+
+    const inicioHoy = new Date(); inicioHoy.setHours(0, 0, 0, 0);
+    const cobradoHoy = registros
+      .filter(r => r.estado === 'finalizado' && r.horaSalida && new Date(r.horaSalida) >= inicioHoy && tieneMonto(r.total))
+      .reduce((suma, r) => suma + Number(r.total), 0);
+
+    document.getElementById('reg-stat-ocupados').textContent = ocupados;
+    document.getElementById('reg-stat-pendientes').textContent = pendientes;
+    document.getElementById('reg-stat-finalizados').textContent = finalizados;
+    document.getElementById('reg-stat-total').textContent = registros.length;
+    document.getElementById('reg-stat-cobrado').textContent = dinero(cobradoHoy);
+  }
+
+  // ---------- TIEMPO REAL ----------
+  // Evita apilar listeners si esta vista se abre varias veces
+  // durante la misma sesión (cada vez que se entra a "Registro").
+  if (window._listenerRegistrosActivo) refRegistros.off('value', window._listenerRegistrosActivo);
+  window._listenerRegistrosActivo = refRegistros.on('value', (snap) => {
+    const datos = snap.val() || {};
+    cacheRegistros = Object.keys(datos).map(id => ({ id, ...datos[id] }));
+    cacheRegistros.sort((a, b) => new Date(b.horaIngreso) - new Date(a.horaIngreso));
+    renderizarTablaRegistros();
+    renderizarPickerSitios(registroEnEdicionId);
+  }, (err) => {
+    console.error('Error leyendo registros en tiempo real:', err);
+    elTablaVacio.textContent = 'No se pudo conectar con la base de datos.';
+    elTablaVacio.style.display = 'block';
+  });
+
+  if (window._listenerConfigMapaRegistro) refConfigMapa.off('value', window._listenerConfigMapaRegistro);
+  window._listenerConfigMapaRegistro = refConfigMapa.on('value', (snap) => {
+    cacheConfigMapa = snap.exists() ? snap.val() : { filas: 3, columnas: 8 };
+    renderizarPickerSitios(registroEnEdicionId);
+  }, (err) => console.error('Error leyendo la configuración del mapa:', err));
+
+  // Escucha "sitios/espacios" para que el picker siempre muestre el
+  // MISMO estado que el mapa de "Sitios".
+  if (window._listenerEspaciosRegistro) refEspacios.off('value', window._listenerEspaciosRegistro);
+  window._listenerEspaciosRegistro = refEspacios.on('value', (snap) => {
+    cacheEspacios = snap.val() || {};
+    renderizarPickerSitios(registroEnEdicionId);
+  }, (err) => console.error('Error leyendo los espacios en tiempo real:', err));
+
+})();
+</script>

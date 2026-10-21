@@ -1,0 +1,316 @@
+<div>
+
+  <!-- ENCABEZADO -->
+  <div style="margin-bottom:22px;">
+    <h2 style="color:#f4f4f4; font-size:1.3rem; margin-bottom:4px;">Centro de ayuda</h2>
+    <p style="color:#a3a3a3; font-size:0.85rem;">Guía rápida de uso del sistema El Refugio, sección por sección</p>
+  </div>
+
+  <!-- BUSCADOR -->
+  <div style="margin-bottom:20px;">
+    <input type="text" id="manual-buscar" placeholder="Buscar en la ayuda (ej: registrar, sitio, salida...)"
+      oninput="filtrarManual()"
+      style="width:100%; background:#050505; border:1px solid #2a2a2a; color:#f4f4f4; padding:11px 14px; border-radius:8px; font-size:0.88rem;">
+  </div>
+
+  <!-- ACCESOS RÁPIDOS -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:26px;">
+    <button class="manual-chip" onclick="irASeccion('manual-inicio')">
+      <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+      Inicio
+    </button>
+    <button class="manual-chip" onclick="irASeccion('manual-sitios')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 20V4"/></svg>
+      Sitios
+    </button>
+    <button class="manual-chip" onclick="irASeccion('manual-registro')">
+      <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      Registro
+    </button>
+    <button class="manual-chip" onclick="irASeccion('manual-historial')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Historial
+    </button>
+    <button class="manual-chip" onclick="irASeccion('manual-calificacion')">
+      <svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
+      Calificación
+    </button>
+    <button class="manual-chip" onclick="irASeccion('manual-login')">
+      <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+      Iniciar sesión
+    </button>
+  </div>
+
+  <!-- ACORDEÓN DE PREGUNTAS -->
+  <div id="manual-lista" style="display:flex; flex-direction:column; gap:10px;">
+
+    <!-- INICIO -->
+    <div class="manual-item" id="manual-inicio" data-palabras="inicio bienvenida menu inicial accesos rapidos pantalla principal">
+      <button class="manual-pregunta" onclick="toggleManual(this)">
+        <span>¿Qué encuentro en la sección Inicio?</span>
+        <svg class="manual-flecha" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="manual-respuesta">
+        <p>Es la pantalla principal del sistema. Desde ahí tienes accesos rápidos a las secciones más usadas: Ver sitios, Nuevo registro, Historial y Centro de ayuda, para no tener que ir siempre al menú superior.</p>
+      </div>
+    </div>
+
+    <!-- SITIOS -->
+    <div class="manual-item" id="manual-sitios" data-palabras="sitios mapa espacios libre ocupado pendiente colores filas columnas plano">
+      <button class="manual-pregunta" onclick="toggleManual(this)">
+        <span>¿Cómo funciona el Mapa de sitios?</span>
+        <svg class="manual-flecha" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="manual-respuesta">
+        <p>Muestra un plano visual de la cochera dividido en filas y espacios, sobre la imagen real del lugar. Cada espacio tiene un color según su estado:</p>
+        <ul>
+          <li><strong style="color:#22c55e;">Verde</strong>: espacio libre.</li>
+          <li><strong style="color:#ef4444;">Rojo</strong>: espacio ocupado por un vehículo.</li>
+          <li><strong style="color:#f5b400;">Amarillo</strong>: espacio pendiente (por ejemplo, reservado o en proceso).</li>
+        </ul>
+        <p>El estado de cada espacio no se cambia desde aquí: se actualiza automáticamente cuando registras el ingreso o la salida de un vehículo en la sección <strong>Registro</strong>. Si el dueño necesita cambiar la cantidad de filas o espacios por fila, puede hacerlo en el panel de configuración de esta misma sección y luego presionar "Actualizar mapa".</p>
+      </div>
+    </div>
+
+    <!-- REGISTRO -->
+    <div class="manual-item" id="manual-registro" data-palabras="registro ingreso vehiculo placa conductor sitio editar eliminar salida formulario crud">
+      <button class="manual-pregunta" onclick="toggleManual(this)">
+        <span>¿Cómo registro el ingreso de un vehículo?</span>
+        <svg class="manual-flecha" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="manual-respuesta">
+        <p>Entra a la sección <strong>Registro</strong> y completa el formulario:</p>
+        <ol>
+          <li>Escribe la <strong>placa</strong> y selecciona el <strong>tipo de vehículo</strong>.</li>
+          <li>Escribe el nombre del <strong>conductor</strong> (y teléfono si lo tienes).</li>
+          <li>Haz clic en un espacio <strong>libre</strong> del mapa para asignar el sitio.</li>
+          <li>Presiona <strong>"Registrar ingreso"</strong>.</li>
+        </ol>
+        <p>El vehículo aparecerá en la tabla de abajo y su sitio se marcará automáticamente como ocupado en el Mapa de sitios.</p>
+      </div>
+    </div>
+
+    <div class="manual-item" data-palabras="editar registro modificar datos vehiculo">
+      <button class="manual-pregunta" onclick="toggleManual(this)">
+        <span>¿Cómo edito o corrijo un registro ya guardado?</span>
+        <svg class="manual-flecha" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="manual-respuesta">
+        <p>En la tabla de Registro, busca la fila del vehículo y presiona el ícono de lápiz (✏️). Esto carga sus datos en el formulario de arriba, donde puedes corregirlos. Al terminar, presiona <strong>"Guardar cambios"</strong>. Si te arrepientes, usa el botón <strong>"Cancelar edición"</strong>.</p>
+      </div>
+    </div>
+
+    <div class="manual-item" data-palabras="salida vehiculo finalizar cerrar registro">
+      <button class="manual-pregunta" onclick="toggleManual(this)">
+        <span>¿Cómo marco la salida de un vehículo?</span>
+        <svg class="manual-flecha" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="manual-respuesta">
+        <p>En la tabla de Registro, presiona el ícono de flecha (➜) en la fila del vehículo. Se te pedirá confirmación y, al aceptar, el registro pasa a estado <strong>"Finalizado"</strong> y su espacio vuelve a quedar libre en el mapa.</p>
+      </div>
+    </div>
+
+    <div class="manual-item" data-palabras="eliminar borrar registro vehiculo">
+      <button class="manual-pregunta" onclick="toggleManual(this)">
+        <span>¿Cómo elimino un registro por error?</span>
+        <svg class="manual-flecha" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="manual-respuesta">
+        <p>Presiona el ícono de tacho (🗑️) en la fila correspondiente. El sistema pedirá confirmación antes de borrar, ya que esta acción no se puede deshacer.</p>
+      </div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div class="manual-item" id="manual-historial" data-palabras="historial acciones movimientos ingresos salidas ediciones eliminaciones">
+      <button class="manual-pregunta" onclick="toggleManual(this)">
+        <span>¿Para qué sirve el Historial?</span>
+        <svg class="manual-flecha" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="manual-respuesta">
+        <p>Muestra un registro cronológico de todo lo que ha ocurrido en el sistema: ingresos, ediciones, salidas y eliminaciones de vehículos, con fecha, hora, placa, conductor y sitio. Puedes filtrar por tipo de acción o buscar por placa, conductor o sitio.</p>
+      </div>
+    </div>
+
+    <!-- CALIFICACIÓN -->
+    <div class="manual-item" id="manual-calificacion" data-palabras="calificacion evaluacion opinion resena cliente">
+      <button class="manual-pregunta" onclick="toggleManual(this)">
+        <span>¿Qué es la sección Calificación?</span>
+        <svg class="manual-flecha" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="manual-respuesta">
+        <p>Es el espacio donde se registran las evaluaciones u opiniones sobre el servicio de la cochera, para que el dueño pueda revisar cómo perciben los clientes la atención brindada.</p>
+      </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="manual-item" id="manual-login" data-palabras="login iniciar sesion usuario contraseña acceso trabajador empleado">
+      <button class="manual-pregunta" onclick="toggleManual(this)">
+        <span>¿Cómo inicio sesión como trabajador?</span>
+        <svg class="manual-flecha" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="manual-respuesta">
+        <p>Presiona <strong>"Iniciar sesión"</strong> en la barra superior e ingresa el usuario y la contraseña que te entregó el dueño del establecimiento. Este acceso es exclusivo para el personal de El Refugio; no existe una opción para crear una cuenta nueva, ya que las credenciales las administra únicamente el dueño.</p>
+      </div>
+    </div>
+
+    <div class="manual-item" data-palabras="olvide contraseña recuperar clave problema acceso">
+      <button class="manual-pregunta" onclick="toggleManual(this)">
+        <span>Olvidé mi usuario o contraseña, ¿qué hago?</span>
+        <svg class="manual-flecha" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="manual-respuesta">
+        <p>Como las credenciales las entrega directamente el dueño del establecimiento, comunícate con él para que te las recuerde o te asigne unas nuevas.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <p id="manual-sin-resultados" style="display:none; text-align:center; color:#6b7280; font-size:0.85rem; padding:26px;">
+    No se encontraron resultados para tu búsqueda.
+  </p>
+
+  <!-- CONTACTO -->
+  <div style="margin-top:30px; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:10px; padding:20px 22px; text-align:center;">
+    <p style="color:#a3a3a3; font-size:0.85rem; margin-bottom:10px;">¿No encontraste lo que buscabas?</p>
+    <a href="tel:+51972173623" style="display:inline-flex; align-items:center; gap:8px; background:#f5b400; color:#000; padding:10px 20px; border-radius:6px; font-size:0.85rem; font-weight:700; text-decoration:none;">
+      <svg viewBox="0 0 24 24" style="width:15px; height:15px; stroke:#000; fill:none;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.79.63 2.65a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.43-1.2a2 2 0 0 1 2.11-.45c.86.3 1.75.51 2.65.63A2 2 0 0 1 22 16.92z"/></svg>
+      Llamar a soporte
+    </a>
+  </div>
+
+</div>
+
+<style>
+  .manual-chip {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    background:#1a1a1a;
+    border:1px solid #2a2a2a;
+    color:#a3a3a3;
+    padding:10px 12px;
+    border-radius:8px;
+    font-size:0.8rem;
+    font-weight:600;
+    cursor:pointer;
+    transition: all 0.15s ease;
+  }
+  .manual-chip svg { width:15px; height:15px; stroke:currentColor; fill:none; flex-shrink:0; }
+  .manual-chip:hover { border-color:#f5b400; color:#ffca28; }
+
+  .manual-item {
+    background:#1a1a1a;
+    border:1px solid #2a2a2a;
+    border-radius:8px;
+    overflow:hidden;
+  }
+
+  .manual-pregunta {
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background:transparent;
+    border:none;
+    color:#f4f4f4;
+    padding:14px 16px;
+    font-size:0.88rem;
+    font-weight:600;
+    text-align:left;
+    cursor:pointer;
+  }
+
+  .manual-flecha {
+    width:16px;
+    height:16px;
+    stroke:#a3a3a3;
+    fill:none;
+    flex-shrink:0;
+    transition: transform 0.2s ease;
+  }
+
+  .manual-item.abierto .manual-flecha { transform: rotate(180deg); stroke:#f5b400; }
+
+  .manual-respuesta {
+    max-height:0;
+    overflow:hidden;
+    transition: max-height 0.25s ease;
+    padding:0 16px;
+  }
+
+  .manual-item.abierto .manual-respuesta {
+    max-height:400px;
+    padding:0 16px 16px 16px;
+  }
+
+  .manual-respuesta p {
+    color:#a3a3a3;
+    font-size:0.83rem;
+    line-height:1.6;
+    margin-bottom:8px;
+  }
+
+  .manual-respuesta ul, .manual-respuesta ol {
+    color:#a3a3a3;
+    font-size:0.83rem;
+    line-height:1.7;
+    padding-left:20px;
+    margin-bottom:8px;
+  }
+
+  .manual-respuesta strong { color:#f4f4f4; }
+</style>
+
+<script>
+  // ------------------------------------------------------------
+  // Vista INDEPENDIENTE (centro de ayuda). No depende de ningún
+  // otro archivo ni de localStorage: es contenido estático de guía.
+  // ------------------------------------------------------------
+
+  function toggleManual(boton) {
+    const item = boton.closest('.manual-item');
+    const yaAbierto = item.classList.contains('abierto');
+
+    // Cierra los demás para mantener el acordeón ordenado
+    document.querySelectorAll('.manual-item.abierto').forEach(el => el.classList.remove('abierto'));
+
+    if (!yaAbierto) {
+      item.classList.add('abierto');
+    }
+  }
+
+  function irASeccion(id) {
+    const item = document.getElementById(id);
+    if (!item) return;
+
+    document.querySelectorAll('.manual-item.abierto').forEach(el => el.classList.remove('abierto'));
+    item.classList.add('abierto');
+    item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function filtrarManual() {
+    const texto = document.getElementById('manual-buscar').value.trim().toLowerCase();
+    const items = document.querySelectorAll('.manual-item');
+    let visibles = 0;
+
+    items.forEach(item => {
+      const palabras = item.getAttribute('data-palabras') || '';
+      const pregunta = item.querySelector('.manual-pregunta span').textContent.toLowerCase();
+      const coincide = !texto || palabras.includes(texto) || pregunta.includes(texto);
+
+      item.style.display = coincide ? 'block' : 'none';
+      if (coincide) visibles++;
+
+      // Si hay búsqueda activa, abre automáticamente las que coinciden
+      if (texto && coincide) {
+        item.classList.add('abierto');
+      } else if (!texto) {
+        item.classList.remove('abierto');
+      }
+    });
+
+    document.getElementById('manual-sin-resultados').style.display = visibles === 0 ? 'block' : 'none';
+  }
+</script>

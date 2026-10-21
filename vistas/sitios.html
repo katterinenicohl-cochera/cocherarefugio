@@ -1,0 +1,597 @@
+<div class="vista-sitios">
+
+  <!-- ENCABEZADO -->
+  <div class="sitios-header">
+    <div>
+      <h2 class="sitios-titulo">
+        Mapa de sitios
+        
+      </h2>
+      <p class="sitios-subtitulo">Vista general de la disponibilidad de espacios en El Refugio</p>
+    </div>
+
+    <div class="stats-resumen">
+      <div class="stat-item">
+        <p class="stat-valor" style="color:#22c55e;" id="stat-libres">0</p>
+        <p class="stat-label">Libres</p>
+      </div>
+      <div class="stat-item">
+        <p class="stat-valor" style="color:#ef4444;" id="stat-ocupados">0</p>
+        <p class="stat-label">Ocupados</p>
+      </div>
+      <div class="stat-item">
+        <p class="stat-valor" style="color:#f5b400;" id="stat-pendientes">0</p>
+        <p class="stat-label">Pendientes</p>
+      </div>
+      <div class="stat-item">
+        <p class="stat-valor" style="color:#f4f4f4;" id="stat-total">0</p>
+        <p class="stat-label">Total</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL DE CONFIGURACIÓN (solo estructura del plano) -->
+  <div class="panel-config">
+
+    <div class="campo-config">
+      <label for="config-filas">Cantidad de filas</label>
+      <input id="config-filas" type="number" min="1" max="10" value="3" inputmode="numeric">
+    </div>
+
+    <div class="campo-config">
+      <label for="config-columnas">Espacios por fila</label>
+      <input id="config-columnas" type="number" min="1" max="10" value="8" inputmode="numeric">
+    </div>
+
+    <button id="btn-actualizar-mapa" class="btn-actualizar" onclick="guardarConfiguracionMapa()">
+      <svg viewBox="0 0 24 24" style="width:15px; height:15px; stroke:#000; fill:none;"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      <span id="btn-actualizar-texto">Actualizar mapa</span>
+    </button>
+
+    <p class="nota-config">
+      El estado de cada espacio (libre, ocupado o pendiente) se define desde <strong style="color:#a3a3a3;">Registro</strong>.
+    </p>
+  </div>
+  <p class="aviso-config" id="aviso-config"></p>
+
+  <!-- LEYENDA -->
+  <div class="leyenda">
+    <div class="leyenda-item">
+      <span class="leyenda-color" style="background:#22c55e; border-color:#16a34a;"></span>
+      Libre
+    </div>
+    <div class="leyenda-item">
+      <span class="leyenda-color" style="background:#ef4444; border-color:#b91c1c;"></span>
+      Ocupado
+    </div>
+    <div class="leyenda-item">
+      <span class="leyenda-color" style="background:#f5b400; border-color:#b98600;"></span>
+      Pendiente
+    </div>
+  </div>
+
+  <!-- PLANO / MAPA 2D CON FONDO REAL (con scroll horizontal en pantallas muy chicas) -->
+  <div class="plano-scroll">
+    <div id="plano-cochera" class="plano-cochera">
+
+      <!-- Mensaje mientras se conecta con la base de datos -->
+      <div id="mapa-cargando" class="mapa-cargando">
+        <span class="spinner-mapa"></span>
+        Conectando con la base de datos...
+      </div>
+
+      <!-- Área útil: coordenadas exactas de Plaza_1 dentro de la imagen -->
+      <div id="contenedor-mapa" class="contenedor-mapa"></div>
+
+    </div>
+  </div>
+
+  
+</div>
+
+<style>
+  @keyframes girar-mapa { to { transform: rotate(360deg); } }
+  @keyframes parpadeo { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  .vista-sitios{ width:100%; }
+
+  /* ---- Encabezado + stats ---- */
+  .sitios-header{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px; flex-wrap:wrap; margin-bottom:18px;
+  }
+  .sitios-titulo{
+    color:#f4f4f4; font-size:1.3rem; margin-bottom:4px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .sitios-subtitulo{ color:#a3a3a3; font-size:0.85rem; }
+
+  .live-badge{
+    display:inline-flex; align-items:center; gap:6px; font-size:0.68rem; font-weight:600;
+    padding:3px 9px; border-radius:20px; border:1px solid transparent; white-space:nowrap;
+  }
+  .live-badge.live-ok{ color:#22c55e; background:rgba(34,197,94,0.12); border-color:rgba(34,197,94,0.35); }
+  .live-badge.live-off{ color:#ef4444; background:rgba(239,68,68,0.12); border-color:rgba(239,68,68,0.35); }
+  .live-dot{
+    width:6px; height:6px; border-radius:50%; background:currentColor;
+    box-shadow:0 0 6px 1px currentColor; animation:parpadeo 1.6s ease-in-out infinite;
+  }
+
+  .stats-resumen{ display:flex; gap:18px; flex-wrap:wrap; }
+  .stat-item{ text-align:center; min-width:52px; }
+  .stat-valor{ font-size:1.3rem; font-weight:700; line-height:1.2; }
+  .stat-label{ color:#a3a3a3; font-size:0.75rem; }
+
+  /* ---- Panel de configuración ---- */
+  .panel-config{
+    display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap;
+    padding:16px 18px; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:10px;
+  }
+  .campo-config label{ display:block; color:#a3a3a3; font-size:0.75rem; margin-bottom:6px; }
+  .campo-config input{
+    width:90px; background:#050505; border:1px solid #2a2a2a; color:#f4f4f4;
+    padding:8px 10px; border-radius:6px; font-size:0.85rem;
+  }
+  .campo-config input:focus{ outline:none; border-color:#f5b400; }
+  .btn-actualizar{
+    display:inline-flex; align-items:center; gap:8px; background:#f5b400; color:#000; border:none;
+    padding:9px 18px; border-radius:6px; font-size:0.85rem; font-weight:700; cursor:pointer;
+    transition:background .15s ease, opacity .15s ease;
+  }
+  .btn-actualizar:hover{ background:#ffca28; }
+  .btn-actualizar:disabled{ opacity:.6; cursor:not-allowed; }
+  .nota-config{ color:#6b7280; font-size:0.75rem; margin:0 0 4px 0; }
+  .aviso-config{
+    color:#f5b400; font-size:0.78rem; margin:8px 2px 0; min-height:1em;
+  }
+
+  /* ---- Leyenda ---- */
+  .leyenda{
+    display:flex; gap:22px; flex-wrap:wrap; margin:18px 0 20px;
+    padding:12px 16px; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:8px;
+  }
+  .leyenda-item{ display:flex; align-items:center; gap:8px; font-size:0.82rem; color:#a3a3a3; }
+  .leyenda-color{ width:14px; height:14px; border-radius:4px; border:2px solid; display:inline-block; }
+
+  /* ---- Plano ---- */
+  .plano-scroll{ width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:4px; }
+  .plano-cochera{
+    position:relative;
+    width:100%;
+    aspect-ratio:3/2;
+    max-width:1100px;
+    margin:0 auto;
+    border-radius:14px;
+    overflow:hidden;
+    background-image:url('img/fondo.png');
+    background-size:cover;
+    background-position:center;
+    background-color:#0b0b0b;
+    box-shadow:0 10px 30px rgba(0,0,0,0.55);
+    border:1px solid #2a2a2a;
+  }
+  .mapa-cargando{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    gap:10px; color:#a3a3a3; font-size:0.85rem; background:rgba(5,5,5,0.55); text-align:center; padding:0 16px;
+  }
+  .spinner-mapa{
+    width:16px; height:16px; border:2.5px solid #2a2a2a; border-top-color:#f5b400;
+    border-radius:50%; animation:girar-mapa 0.7s linear infinite; flex-shrink:0;
+  }
+  .contenedor-mapa{
+    position:absolute; top:5.78%; left:11.98%; width:74.70%; height:88.35%;
+    display:grid; gap:3%;
+  }
+  .nota-final{ color:#6b7280; font-size:0.75rem; margin-top:14px; text-align:center; }
+
+  .fila-wrapper { display:flex; align-items:stretch; gap:6px; min-height:0; min-width:0; }
+  .fila-titulo{
+    display:flex; align-items:center; justify-content:center; min-width:34px; padding:0 4px;
+    background:rgba(0,0,0,0.55); border:2px solid rgba(255,255,255,0.35); border-radius:6px;
+    color:#f4f4f4; font-size:0.65rem; font-weight:800; letter-spacing:0.3px; text-align:center;
+    text-shadow:0 1px 2px rgba(0,0,0,0.8);
+  }
+  .fila-sitios{ flex:1; display:grid; gap:5%; min-height:0; min-width:0; }
+  .sitio{
+    position:relative; min-height:0; min-width:0; border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    transition:background .2s ease, border-color .2s ease;
+  }
+  .sitio.libre{ background:rgba(34, 197, 94, 0.45); border:3px solid #22c55e; }
+  .sitio.ocupado{ background:rgba(239, 68, 68, 0.45); border:3px solid #ef4444; }
+  .sitio.pendiente{ background:rgba(245, 180, 0, 0.45); border:3px solid #f5b400; }
+  .sitio .etiqueta{
+    position:absolute; top:2px; left:4px; font-size:0.6rem; font-weight:800; letter-spacing:0.3px;
+    color:#ffffff; text-shadow:0 1px 3px rgba(0,0,0,0.9); pointer-events:none;
+  }
+  .sitio .auto-icono{
+    max-width:92%; max-height:92%; object-fit:contain;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,0.6));
+  }
+
+  /* =========================================================
+     RESPONSIVE — celular / tablet
+     ========================================================= */
+  @media (max-width: 900px){
+    .stats-resumen{ gap:12px; width:100%; justify-content:space-between; }
+    .stat-item{ flex:1; min-width:0; }
+  }
+  @media (max-width: 700px) {
+    .sitios-titulo{ font-size:1.12rem; }
+    .panel-config{ align-items:stretch; padding:14px; }
+    .campo-config{ flex:1; min-width:120px; }
+    .campo-config input{ width:100%; }
+    .btn-actualizar{ width:100%; justify-content:center; }
+    .nota-config{ order:99; width:100%; margin-top:2px; }
+    .leyenda{ gap:14px; padding:10px 14px; }
+    .plano-cochera{ min-width:560px; }
+    .sitio .etiqueta { display:none; }
+    .fila-titulo { min-width: 22px; font-size: 0.55rem; }
+    .stat-valor{ font-size:1.1rem; }
+  }
+  @media (max-width: 420px){
+    .stats-resumen{ gap:8px; }
+    .stat-label{ font-size:0.68rem; }
+  }
+</style>
+
+<script>
+(function () {
+  // ------------------------------------------------------------
+  // Conexión a Firebase (si index.html ya inicializó la app,
+  // reutiliza esa misma conexión; si este archivo se abre solo,
+  // la crea aquí para que no truene).
+  // Proyecto nuevo: cochera-87869
+  // ------------------------------------------------------------
+  const CONFIG_FIREBASE = {
+    apiKey: "AIzaSyCQXVOJocqHq5J7Lr0xCcWyNvRD5_D3QNc",
+    authDomain: "cochera-87869.firebaseapp.com",
+    databaseURL: "https://cochera-87869-default-rtdb.firebaseio.com",
+    projectId: "cochera-87869",
+    storageBucket: "cochera-87869.firebasestorage.app",
+    messagingSenderId: "708639254179",
+    appId: "1:708639254179:web:89f38cca4fd7fccdd40116"
+  };
+
+  const elCargando = document.getElementById('mapa-cargando');
+
+  // Chequeo defensivo: si por algún motivo el SDK de Firebase no cargó
+  // (ej. sin internet, bloqueado por el navegador), se avisa en vez de
+  // que la vista se rompa en silencio.
+  if (!window.firebase || !window.firebase.database) {
+    if (elCargando) {
+      elCargando.textContent = 'No se pudo cargar la conexión con la base de datos. Revisa tu internet y recarga la página.';
+    }
+    return;
+  }
+
+  if (!window.firebase.apps.length) {
+    window.firebase.initializeApp(CONFIG_FIREBASE);
+  }
+  const dbSitios = window.firebase.database();
+  const refSitios = dbSitios.ref('sitios');
+  const refConfig = dbSitios.ref('sitios/config');
+  const refEspacios = dbSitios.ref('sitios/espacios');
+  const refConectado = window.firebase.database().ref('.info/connected');
+
+  const FILAS_MAX = 10;
+  const COLUMNAS_MAX = 14;
+
+  // Tonos de color disponibles para pintar el auto (grados de hue-rotate).
+  // Se guarda uno por espacio en la BD para que no cambie en cada recarga.
+  const TONOS_AUTO = [0, 25, 55, 95, 140, 175, 200, 230, 265, 300, 330];
+
+  // Estado local de lo último dibujado, para poder actualizar el mapa
+  // "in place" (solo lo que cambió) en vez de destruir y reconstruir
+  // todo el DOM cada vez que llega un cambio de la BD.
+  let dimsActuales = { filas: 0, columnas: 0 };
+  let celdasDOM = {}; // clave -> { el, spanAuto }
+
+  function letraFila(indice) {
+    return String.fromCharCode(65 + indice); // A, B, C, D...
+  }
+
+  function mostrarAviso(msg) {
+    const el = document.getElementById('aviso-config');
+    if (!el) return;
+    el.textContent = msg;
+    if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4000);
+  }
+
+  // ------------------------------------------------------------
+  // Indicador "En vivo" real, basado en la conexión efectiva con
+  // Firebase (antes quedaba siempre en verde aunque no hubiera
+  // conexión, lo cual era engañoso).
+  // ------------------------------------------------------------
+  refConectado.on('value', (snap) => {
+    const badge = document.getElementById('badge-vivo');
+    if (!badge) return;
+    const conectado = snap.val() === true;
+    badge.classList.toggle('live-ok', conectado);
+    badge.classList.toggle('live-off', !conectado);
+    badge.innerHTML = conectado
+      ? '<span class="live-dot"></span>En vivo'
+      : '<span class="live-dot"></span>Sin conexión';
+  });
+
+  // ------------------------------------------------------------
+  // Como la base es nueva, puede no existir NADA todavía.
+  // Esta función revisa qué falta y solo crea eso, sin pisar
+  // datos que ya estén guardados (por ejemplo un espacio que
+  // ya quedó "ocupado" desde Registro).
+  // ------------------------------------------------------------
+  function asegurarDatosIniciales() {
+    return refConfig.once('value').then((snapConfig) => {
+      const configActual = snapConfig.exists() ? snapConfig.val() : null;
+      const filas = (configActual && configActual.filas) || 3;
+      const columnas = (configActual && configActual.columnas) || 8;
+
+      const tareas = [];
+      if (!configActual) {
+        tareas.push(refConfig.set({ filas, columnas }));
+      }
+      tareas.push(crearEspaciosFaltantes(filas, columnas));
+      return Promise.all(tareas);
+    });
+  }
+
+  // Revisa espacio por espacio (Fila+Columna) y solo agrega a la BD
+  // los que todavía no existan, con estado "libre" por defecto.
+  function crearEspaciosFaltantes(filas, columnas) {
+    return refEspacios.once('value').then((snapEspacios) => {
+      const existentes = snapEspacios.exists() ? snapEspacios.val() : {};
+      const nuevos = {};
+
+      for (let f = 0; f < filas; f++) {
+        for (let c = 1; c <= columnas; c++) {
+          const clave = `${letraFila(f)}${c}`;
+          if (!existentes[clave]) {
+            nuevos[clave] = {
+              estado: 'libre',
+              tono: TONOS_AUTO[Math.floor(Math.random() * TONOS_AUTO.length)]
+            };
+          }
+        }
+      }
+
+      if (Object.keys(nuevos).length === 0) return null;
+      return refEspacios.update(nuevos);
+    });
+  }
+
+  // Si el plano se achica (menos filas/columnas que antes), los espacios
+  // que quedaron fuera del nuevo rango ya no se dibujan, pero antes
+  // seguían contando en "Libres/Ocupados/Total" porque nunca se
+  // borraban de la BD. Esto los limpia para que las estadísticas
+  // siempre coincidan con lo que se ve en el mapa.
+  function limpiarEspaciosFueraDeRango(filas, columnas) {
+    return refEspacios.once('value').then((snapEspacios) => {
+      if (!snapEspacios.exists()) return null;
+      const existentes = snapEspacios.val();
+      const aBorrar = {};
+
+      Object.keys(existentes).forEach((clave) => {
+        const letra = clave.charAt(0);
+        const numero = parseInt(clave.slice(1), 10);
+        const indiceFila = letra.charCodeAt(0) - 65;
+        if (indiceFila >= filas || numero > columnas || numero < 1) {
+          aBorrar[clave] = null; // null en update() = eliminar esa clave
+        }
+      });
+
+      if (Object.keys(aBorrar).length === 0) return null;
+      return refEspacios.update(aBorrar);
+    });
+  }
+
+  // ------------------------------------------------------------
+  // Botón "Actualizar mapa": guarda la nueva cantidad de filas y
+  // columnas en la BD, crea los espacios nuevos que hagan falta y
+  // limpia los que quedaron fuera de rango. Los espacios que ya
+  // existían dentro del nuevo rango conservan su estado tal cual.
+  // ------------------------------------------------------------
+  window.guardarConfiguracionMapa = function () {
+    const btn = document.getElementById('btn-actualizar-mapa');
+    const btnTexto = document.getElementById('btn-actualizar-texto');
+    const inputFilas = document.getElementById('config-filas');
+    const inputColumnas = document.getElementById('config-columnas');
+
+    let filas = parseInt(inputFilas.value, 10);
+    let columnas = parseInt(inputColumnas.value, 10);
+
+    // Antes no había límites reales: se podían escribir valores como
+    // 999 y se intentaba dibujar un plano imposible. Ahora se ajustan
+    // dentro de los límites permitidos y se avisa si hubo que corregir.
+    if (isNaN(filas)) filas = 3;
+    if (isNaN(columnas)) columnas = 8;
+    const filasOriginal = filas, columnasOriginal = columnas;
+    filas = Math.min(FILAS_MAX, Math.max(1, filas));
+    columnas = Math.min(COLUMNAS_MAX, Math.max(1, columnas));
+    inputFilas.value = filas;
+    inputColumnas.value = columnas;
+
+    if (filas !== filasOriginal || columnas !== columnasOriginal) {
+      mostrarAviso(`Los valores se ajustaron al rango permitido (filas 1–${FILAS_MAX}, espacios 1–${COLUMNAS_MAX}).`);
+    }
+
+    btn.disabled = true;
+    inputFilas.disabled = true;
+    inputColumnas.disabled = true;
+    btnTexto.textContent = 'Actualizando...';
+
+    refConfig.set({ filas, columnas })
+      .then(() => Promise.all([
+        crearEspaciosFaltantes(filas, columnas),
+        limpiarEspaciosFueraDeRango(filas, columnas)
+      ]))
+      .catch((err) => {
+        console.error('No se pudo actualizar el mapa:', err);
+        mostrarAviso('No se pudo actualizar el mapa. Intenta de nuevo.');
+      })
+      .finally(() => {
+        btn.disabled = false;
+        inputFilas.disabled = false;
+        inputColumnas.disabled = false;
+        btnTexto.textContent = 'Actualizar mapa';
+      });
+    // El repintado ocurre solo, por el listener en tiempo real de abajo.
+  };
+
+  // ------------------------------------------------------------
+  // Dibuja o actualiza el plano a partir de lo que hay en la BD.
+  // Si la cantidad de filas/columnas no cambió desde el último
+  // dibujo, solo actualiza el color/contenido de cada celda que
+  // cambió (en vez de destruir y recrear todo el grid), para que
+  // no se pierda el hover ni el scroll y las transiciones de color
+  // se vean suaves. Además, mientras alguien está escribiendo en
+  // los campos de filas/columnas, esos inputs ya no se pisan solos
+  // con cada actualización que llega de la BD.
+  // ------------------------------------------------------------
+  function renderizarMapa(datos) {
+    if (elCargando) elCargando.style.display = 'none';
+
+    const config = (datos && datos.config) || { filas: 3, columnas: 8 };
+    const espacios = (datos && datos.espacios) || {};
+    const filas = config.filas || 3;
+    const columnas = config.columnas || 8;
+
+    const inputFilas = document.getElementById('config-filas');
+    const inputColumnas = document.getElementById('config-columnas');
+    const elementoActivo = document.activeElement;
+
+    if (elementoActivo !== inputFilas && String(inputFilas.value) !== String(filas)) {
+      inputFilas.value = filas;
+    }
+    if (elementoActivo !== inputColumnas && String(inputColumnas.value) !== String(columnas)) {
+      inputColumnas.value = columnas;
+    }
+
+    const huboReestructurado = (filas !== dimsActuales.filas || columnas !== dimsActuales.columnas);
+
+    if (huboReestructurado) {
+      construirEstructuraGrid(filas, columnas);
+      dimsActuales = { filas, columnas };
+    }
+
+    // Pinta cada celda existente con el estado actual (libre/ocupado/pendiente).
+    for (let f = 0; f < filas; f++) {
+      for (let c = 1; c <= columnas; c++) {
+        const clave = `${letraFila(f)}${c}`;
+        const refCelda = celdasDOM[clave];
+        if (!refCelda) continue; // por si aún no terminó de construirse
+
+        const datoEspacio = espacios[clave] || { estado: 'libre', tono: 0 };
+        const estado = ['libre', 'ocupado', 'pendiente'].includes(datoEspacio.estado)
+          ? datoEspacio.estado
+          : 'libre';
+
+        if (refCelda.estado !== estado) {
+          refCelda.el.classList.remove('libre', 'ocupado', 'pendiente');
+          refCelda.el.classList.add(estado);
+          refCelda.el.title = `${clave} · ${estado.charAt(0).toUpperCase() + estado.slice(1)}`;
+          refCelda.estado = estado;
+
+          if (estado === 'ocupado') {
+            refCelda.contenedorAuto.innerHTML = `<img class="auto-icono" src="img/auto.png" alt="Vehículo"
+              style="filter: hue-rotate(${datoEspacio.tono || 0}deg) saturate(1.4) drop-shadow(0 2px 3px rgba(0,0,0,0.6));">`;
+          } else {
+            refCelda.contenedorAuto.innerHTML = '';
+          }
+        }
+      }
+    }
+
+    actualizarContadores(espacios, filas, columnas);
+  }
+
+  // Construye desde cero la grilla de filas/columnas (solo cuando la
+  // configuración cambió) y guarda referencias a cada celda en
+  // celdasDOM para poder actualizarlas después sin recrear el DOM.
+  function construirEstructuraGrid(filas, columnas) {
+    const contenedor = document.getElementById('contenedor-mapa');
+    contenedor.innerHTML = '';
+    contenedor.style.gridTemplateRows = `repeat(${filas}, 1fr)`;
+    celdasDOM = {};
+
+    for (let f = 0; f < filas; f++) {
+      const filaWrapper = document.createElement('div');
+      filaWrapper.className = 'fila-wrapper';
+
+      const filaTitulo = document.createElement('div');
+      filaTitulo.className = 'fila-titulo';
+      filaTitulo.textContent = `Fila ${letraFila(f)}`;
+      filaWrapper.appendChild(filaTitulo);
+
+      const filaDiv = document.createElement('div');
+      filaDiv.className = 'fila-sitios';
+      filaDiv.style.gridTemplateColumns = `repeat(${columnas}, 1fr)`;
+
+      for (let c = 1; c <= columnas; c++) {
+        const clave = `${letraFila(f)}${c}`;
+
+        const celda = document.createElement('div');
+        celda.className = 'sitio libre';
+
+        const etiqueta = document.createElement('span');
+        etiqueta.className = 'etiqueta';
+        etiqueta.textContent = clave;
+
+        const contenedorAuto = document.createElement('span');
+
+        celda.appendChild(etiqueta);
+        celda.appendChild(contenedorAuto);
+        filaDiv.appendChild(celda);
+
+        celdasDOM[clave] = { el: celda, contenedorAuto, estado: 'libre' };
+      }
+
+      filaWrapper.appendChild(filaDiv);
+      contenedor.appendChild(filaWrapper);
+    }
+  }
+
+  // Los contadores ahora solo suman lo que realmente cabe dentro del
+  // rango actual (filas x columnas). Antes sumaban TODO lo que hubiera
+  // en la BD, incluyendo espacios "huérfanos" que quedaban de una
+  // configuración anterior más grande, y los totales no coincidían
+  // con lo que se veía dibujado en el mapa.
+  function actualizarContadores(espacios, filas, columnas) {
+    let libres = 0, ocupados = 0, pendientes = 0;
+
+    for (let f = 0; f < filas; f++) {
+      for (let c = 1; c <= columnas; c++) {
+        const clave = `${letraFila(f)}${c}`;
+        const estado = (espacios[clave] && espacios[clave].estado) || 'libre';
+        if (estado === 'libre') libres++;
+        else if (estado === 'ocupado') ocupados++;
+        else if (estado === 'pendiente') pendientes++;
+      }
+    }
+    const total = libres + ocupados + pendientes;
+
+    document.getElementById('stat-libres').textContent = libres;
+    document.getElementById('stat-ocupados').textContent = ocupados;
+    document.getElementById('stat-pendientes').textContent = pendientes;
+    document.getElementById('stat-total').textContent = total;
+  }
+
+  // Evita apilar listeners si esta vista se abre varias veces
+  // durante la misma sesión (cada vez que se entra a "Sitios").
+  if (window._listenerSitiosActivo) {
+    refSitios.off('value', window._listenerSitiosActivo);
+  }
+  dimsActuales = { filas: 0, columnas: 0 }; // fuerza reconstrucción del grid en este montaje
+  window._listenerSitiosActivo = refSitios.on('value', (snap) => {
+    renderizarMapa(snap.val());
+  }, (err) => {
+    console.error('Error leyendo sitios en tiempo real:', err);
+    if (elCargando) {
+      elCargando.style.display = 'flex';
+      elCargando.textContent = 'No se pudo conectar con la base de datos.';
+    }
+  });
+
+  // Si la BD está vacía (proyecto recién creado), esto la deja lista.
+  asegurarDatosIniciales().catch((err) => console.error('No se pudo preparar la BD:', err));
+})();
+</script>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crear usuario | El Refugio</title>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<style>
+  *{box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif;}
+  body{background:#050505;color:#f4f4f4;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .box{width:100%;max-width:360px;background:#111;border:1px solid #2a2a2a;border-radius:10px;padding:28px;}
+  h2{color:#f5b400;font-size:1.1rem;margin-bottom:18px;text-align:center;}
+  label{display:block;font-size:.78rem;color:#a3a3a3;margin:12px 0 5px;}
+  input,select{width:100%;background:#050505;border:1px solid #2a2a2a;color:#f4f4f4;padding:10px;border-radius:7px;font-size:.88rem;}
+  input:focus,select:focus{outline:none;border-color:#f5b400;}
+  button{width:100%;margin-top:20px;background:#f5b400;color:#000;border:none;padding:11px;border-radius:7px;font-weight:700;cursor:pointer;font-size:.9rem;}
+  button:hover{background:#ffca28;}
+  button:disabled{opacity:.6;cursor:not-allowed;}
+  .msg{margin-top:14px;font-size:.82rem;padding:9px 10px;border-radius:7px;display:none;text-align:center;}
+  .msg.ok{display:block;background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.35);}
+  .msg.err{display:block;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.35);}
+</style>
+</head>
+<body>
+
+<div class="box">
+  <h2>Crear usuario en la BD</h2>
+  <form id="form-usuario">
+    <label>Usuario (será el nodo, sin espacios)</label>
+    <input type="text" id="usuario" required>
+
+    <label>Contraseña</label>
+    <input type="text" id="clave" required>
+
+    <label>Nombre completo</label>
+    <input type="text" id="nombre" required>
+
+    <label>Correo (opcional)</label>
+    <input type="email" id="correo">
+
+    <label>Rol</label>
+    <select id="rol">
+      <option value="trabajador">Trabajador</option>
+      <option value="admin">Administrador</option>
+    </select>
+
+    <button type="submit" id="btn">Crear usuario</button>
+  </form>
+  <div class="msg" id="msg"></div>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCQXVOJocqHq5J7Lr0xCcWyNvRD5_D3QNc",
+    authDomain: "cochera-87869.firebaseapp.com",
+    databaseURL: "https://cochera-87869-default-rtdb.firebaseio.com",
+    projectId: "cochera-87869",
+    storageBucket: "cochera-87869.firebasestorage.app",
+    messagingSenderId: "708639254179",
+    appId: "1:708639254179:web:89f38cca4fd7fccdd40116"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const form = document.getElementById('form-usuario');
+  const btn = document.getElementById('btn');
+  const msg = document.getElementById('msg');
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const usuario = document.getElementById('usuario').value.trim();
+    const clave = document.getElementById('clave').value;
+    const nombre = document.getElementById('nombre').value.trim();
+    const correo = document.getElementById('correo').value.trim();
+    const rol = document.getElementById('rol').value;
+
+    if (!usuario || !clave || !nombre) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Creando...';
+    msg.className = 'msg';
+
+    // Crea (o sobreescribe) el nodo usuarios/<usuario> directamente.
+    db.ref('usuarios/' + usuario).set({ usuario, clave, nombre, correo, rol })
+      .then(() => {
+        msg.textContent = 'Usuario "' + usuario + '" creado correctamente.';
+        msg.className = 'msg ok';
+        form.reset();
+      })
+      .catch((err) => {
+        msg.textContent = 'Error: ' + (err.code || err.message);
+        msg.className = 'msg err';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Crear usuario';
+      });
+  });
+</script>
+
+</body>
+</html>
